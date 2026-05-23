@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { loginAction } from '../actions';
+import { loginAction } from '../auth-actions';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 
 interface AdminLoginPageProps {

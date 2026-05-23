@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
-import { createProductAction, logoutAction, updateOrderAction } from './actions';
+import { logoutAction } from './auth-actions';
+import { createProductAction, updateOrderAction } from './actions';
 import { requireAdmin } from '@/lib/admin-auth';
 import { getAdminCatalogStats, listAdminProductGroups } from '@/lib/catalog';
 import { formatUsdFromCents } from '@/lib/money';

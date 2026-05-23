@@ -1,12 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import Stripe from "stripe";
-import { eq } from "drizzle-orm";
 
-import { getDb, getStripeSecretKey, getStripeWebhookSecret } from "@/lib/cloudflare";
-import { getCartWithItems, updateCartStatus } from "@/lib/cart";
-import { createOrderFromCart } from "@/lib/orders";
-import { orders } from "@/db/schema";
+import { updateCartStatus } from "@/lib/cart";
+import { createOrderFromCart, getOrderByStripeSessionId } from "@/lib/orders";
+import { createStripeClient, getStripeWebhookSecret } from "@/lib/stripe";
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -16,12 +13,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
-  let event: Stripe.Event;
+  let event;
   try {
-    const stripe = new Stripe(getStripeSecretKey(), {
-      httpClient: Stripe.createFetchHttpClient(),
-    });
-    event = await stripe.webhooks.constructEventAsync(body, sig, getStripeWebhookSecret());
+    const stripe = createStripeClient();
+    event = stripe.webhooks.constructEvent(body, sig, getStripeWebhookSecret());
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -35,17 +30,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing cartId in metadata" }, { status: 400 });
     }
 
-    const db = getDb();
-    const existing = await db
-      .select({ id: orders.id })
-      .from(orders)
-      .where(eq(orders.stripeSessionId, session.id))
-      .get();
-
+    const existing = await getOrderByStripeSessionId(session.id);
     if (existing) {
       return NextResponse.json({ received: true });
     }
 
+    const { getCartWithItems } = await import("@/lib/cart");
     const cart = await getCartWithItems(cartId);
     if (!cart) {
       return NextResponse.json({ error: "Cart not found" }, { status: 404 });

@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin-auth';
 import { getCartWithItems } from '@/lib/cart';
 import { formatUsdFromCents } from '@/lib/money';
-import { logoutAction, adminClearCartAction, adminDeleteCartAction, adminUpdateCartStatusAction, adminUpdateCartNotesAction } from '../../actions';
+import { logoutAction } from '../../auth-actions';
+import { adminClearCartAction, adminDeleteCartAction, adminUpdateCartStatusAction, adminUpdateCartNotesAction } from '../../actions';
 import AdminHeader from '@/components/AdminHeader';
 
 export const dynamic = 'force-dynamic';

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requireAdmin } from '@/lib/admin-auth';
 import { getAdminCartStats, listAdminCarts } from '@/lib/cart';
 import { formatUsdFromCents } from '@/lib/money';
-import { logoutAction } from '../actions';
+import { logoutAction } from '../auth-actions';
 import { type CartStatus } from '@/lib/cart-constants';
 import AdminHeader from '@/components/AdminHeader';
 

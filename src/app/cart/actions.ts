@@ -16,7 +16,9 @@ import {
   clearCart as clearCartLib,
   createCart,
   findCartByEmail,
+  getCartItemQuantity,
   getCartWithItems,
+  getProductInventory,
   mergeCartItems,
   removeCartItem as removeCartItemLib,
   replaceCartItems,
@@ -24,9 +26,7 @@ import {
   upsertCartItem as upsertCartItemLib,
   validateActiveProduct,
 } from "@/lib/cart";
-import { getDb, getStripeSecretKey } from "@/lib/cloudflare";
-import { cartItems, products } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { getStripeSecretKey } from "@/lib/stripe";
 
 export type StartCartResult =
   | { ok: true; cartId: string }
@@ -109,27 +109,6 @@ export type MutationResult =
   | { ok: true; cartId: string }
   | { ok: false; error: string };
 
-async function getEffectiveInventory(productId: string): Promise<number | null> {
-  const db = getDb();
-  const row = await db
-    .select({ inventory: products.inventory, isActive: products.isActive })
-    .from(products)
-    .where(eq(products.id, productId))
-    .get();
-  if (!row || !row.isActive) return null;
-  return row.inventory;
-}
-
-async function getCurrentQuantity(cartId: string, productId: string): Promise<number> {
-  const db = getDb();
-  const row = await db
-    .select({ quantity: cartItems.quantity })
-    .from(cartItems)
-    .where(and(eq(cartItems.cartId, cartId), eq(cartItems.productId, productId)))
-    .get();
-  return row?.quantity ?? 0;
-}
-
 export async function addCartItemAction(formData: FormData): Promise<MutationResult> {
   const cartId = String(formData.get("cartId") ?? "");
   const productId = String(formData.get("productId") ?? "");
@@ -142,9 +121,9 @@ export async function addCartItemAction(formData: FormData): Promise<MutationRes
   const active = await validateActiveProduct(productId);
   if (!active) return { ok: false, error: "This item is not available." };
 
-  const inventory = await getEffectiveInventory(productId);
+  const inventory = await getProductInventory(productId);
   if (inventory === null) return { ok: false, error: "This item is not available." };
-  const currentQty = await getCurrentQuantity(cartId, productId);
+  const currentQty = await getCartItemQuantity(cartId, productId);
   if (currentQty + quantity > inventory) {
     return { ok: false, error: `Only ${inventory - currentQty} left in stock.` };
   }
@@ -165,7 +144,7 @@ export async function updateCartItemAction(formData: FormData): Promise<Mutation
   }
 
   if (quantity > 0) {
-    const inventory = await getEffectiveInventory(productId);
+    const inventory = await getProductInventory(productId);
     if (inventory === null) return { ok: false, error: "This item is not available." };
     if (quantity > inventory) return { ok: false, error: `Only ${inventory} left in stock.` };
   }
@@ -209,9 +188,7 @@ export async function createCheckoutSessionAction(cartId: string): Promise<Check
     const proto = h.get("x-forwarded-proto") ?? "https";
     const origin = `${proto}://${host}`;
 
-    const stripe = new Stripe(getStripeSecretKey(), {
-      httpClient: Stripe.createFetchHttpClient(),
-    });
+    const stripe = new Stripe(getStripeSecretKey());
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",

@@ -5,13 +5,13 @@ import {
   createVariantAction,
   deleteProductAction,
   deleteVariantAction,
-  logoutAction,
   setHeroProductAction,
   updateProductAction,
   updateVariantAction,
   uploadProductImageAction,
   uploadVariantImageAction,
 } from '../../actions';
+import { logoutAction } from '../../auth-actions';
 import { requireAdmin } from '@/lib/admin-auth';
 import { formatUsdFromCents } from '@/lib/money';
 import { getAdminProductGroupBySlug } from '@/lib/catalog';

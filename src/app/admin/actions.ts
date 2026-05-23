@@ -1,13 +1,16 @@
 'use server';
 
-import { desc, eq, inArray } from 'drizzle-orm';
+import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { cartItems, carts, orderItems, orders, products } from '@/db/schema';
-import { loginAdmin, logoutAdmin, requireAdmin } from '@/lib/admin-auth';
-import { getDb, getProductImagePath, getProductImagesBucket } from '@/lib/cloudflare';
+import { api } from '../../../convex/_generated/api';
+import { requireAdmin } from '@/lib/admin-auth';
+import { adminClearCart, deleteCart, updateCartNotes, updateCartStatus } from '@/lib/cart';
 import { CART_STATUSES, type CartStatus } from '@/lib/cart-constants';
+import { getAdminSecret } from '@/lib/convex';
+import { updateOrder } from '@/lib/orders';
+import { getProductImagePath, putProductImage } from '@/lib/product-images';
 
 function slugify(value: string) {
   return value
@@ -22,89 +25,39 @@ function parentIdFromSlug(slug: string) {
 }
 
 async function getUniqueParentSlug(baseSlug: string) {
-  const db = getDb();
-  let candidate = baseSlug;
-  let counter = 2;
-
-  for (;;) {
-    const existing = await db.query.products.findFirst({
-      where: eq(products.parentProductId, parentIdFromSlug(candidate)),
-    });
-
-    if (!existing) {
-      return candidate;
-    }
-
-    candidate = `${baseSlug}-${counter}`;
-    counter += 1;
-  }
+  return fetchQuery(api.products.getUniqueParentSlug, {
+    baseSlug,
+    adminSecret: getAdminSecret(),
+  });
 }
 
-async function getUniqueVariantSlug(baseSlug: string) {
-  const db = getDb();
-  let candidate = baseSlug;
-  let counter = 2;
-
-  for (;;) {
-    const existing = await db.query.products.findFirst({
-      where: eq(products.slug, candidate),
-    });
-
-    if (!existing) {
-      return candidate;
-    }
-
-    candidate = `${baseSlug}-${counter}`;
-    counter += 1;
-  }
-}
-
-async function getUniqueVariantSlugForUpdate(baseSlug: string, productId: string) {
-  const db = getDb();
-  let candidate = baseSlug;
-  let counter = 2;
-
-  for (;;) {
-    const existing = await db.query.products.findFirst({
-      where: eq(products.slug, candidate),
-    });
-
-    if (!existing || existing.id === productId) {
-      return candidate;
-    }
-
-    candidate = `${baseSlug}-${counter}`;
-    counter += 1;
-  }
+async function getUniqueVariantSlug(baseSlug: string, excludeProductId?: string) {
+  return fetchQuery(api.products.getUniqueVariantSlug, {
+    baseSlug,
+    excludeProductId,
+    adminSecret: getAdminSecret(),
+  });
 }
 
 function toCents(value: FormDataEntryValue | null) {
   const amount = Number(value ?? 0);
-
   return Number.isFinite(amount) ? Math.max(0, Math.round(amount * 100)) : 0;
 }
 
 function toNullableCents(value: FormDataEntryValue | null) {
   const rawValue = String(value ?? '').trim();
-
-  if (!rawValue) {
-    return null;
-  }
-
+  if (!rawValue) return null;
   const amount = Number(rawValue);
-
   return Number.isFinite(amount) ? Math.max(0, Math.round(amount * 100)) : null;
 }
 
 function toInventoryCount(value: FormDataEntryValue | null) {
   const amount = Number(value ?? 0);
-
   return Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
 }
 
 function toSortOrder(value: FormDataEntryValue | null) {
   const amount = Number(value ?? 0);
-
   return Number.isFinite(amount) ? Math.floor(amount) : 0;
 }
 
@@ -117,21 +70,12 @@ function sanitizeFileName(fileName: string) {
   const baseName = extensionIndex >= 0 ? fileName.slice(0, extensionIndex) : fileName;
   const extension = extensionIndex >= 0 ? fileName.slice(extensionIndex).toLowerCase() : '';
   const sanitizedBase = slugify(baseName) || 'image';
-
   return `${sanitizedBase}${extension}`;
 }
 
 async function uploadImageFile(file: File, objectKey: string) {
-  const bucket = getProductImagesBucket();
   const bytes = await file.arrayBuffer();
-
-  await bucket.put(objectKey, bytes, {
-    httpMetadata: {
-      contentType: file.type || 'application/octet-stream',
-    },
-  });
-
-  return getProductImagePath(objectKey);
+  return putProductImage(objectKey, bytes, file.type || 'application/octet-stream');
 }
 
 function revalidateCatalogPaths(parentSlug: string, variantSlug?: string, previousVariantSlug?: string) {
@@ -140,51 +84,15 @@ function revalidateCatalogPaths(parentSlug: string, variantSlug?: string, previo
   revalidatePath('/admin');
   revalidatePath(`/admin/products/${parentSlug}`);
   revalidatePath(`/products/${parentSlug}`);
-
-  if (variantSlug) {
-    revalidatePath(`/products/${variantSlug}`);
-  }
-
+  if (variantSlug) revalidatePath(`/products/${variantSlug}`);
   if (previousVariantSlug && previousVariantSlug !== variantSlug) {
     revalidatePath(`/products/${previousVariantSlug}`);
   }
 }
 
-/**
- * Logs the owner into the admin area.
- *
- * @param formData Submitted login form data.
- * @throws Redirects to the admin page on success or back to login on failure.
- */
-export async function loginAction(formData: FormData) {
-  const password = String(formData.get('password') ?? '');
-  const authenticated = await loginAdmin(password);
-
-  if (!authenticated) {
-    redirect('/admin/login?error=invalid');
-  }
-
-  redirect('/admin');
-}
-
-/**
- * Logs the owner out of the admin area.
- *
- * @throws Redirects to the login page.
- */
-export async function logoutAction() {
-  await logoutAdmin();
-  redirect('/admin/login');
-}
-
-/**
- * Creates a new parent product and its initial variant from the dashboard.
- *
- * @param formData Submitted product-creation form data.
- * @throws Redirects to the new product editor.
- */
 export async function createProductAction(formData: FormData) {
   await requireAdmin();
+  const adminSecret = getAdminSecret();
 
   const productName = String(formData.get('productName') ?? '').trim();
   const description = String(formData.get('description') ?? '').trim();
@@ -197,49 +105,42 @@ export async function createProductAction(formData: FormData) {
   const isFeatured = getBooleanField(formData, 'isFeatured');
   const isActive = getBooleanField(formData, 'isActive');
 
-  if (!productName || !initialVariantName) {
-    redirect('/admin');
-  }
+  if (!productName || !initialVariantName) redirect('/admin');
 
   const parentSlug = await getUniqueParentSlug(slugify(productName));
-  const variantSlug = await getUniqueVariantSlug(
-    `${parentSlug}-${slugify(initialVariantName)}`,
-  );
-  const db = getDb();
+  const variantSlug = await getUniqueVariantSlug(`${parentSlug}-${slugify(initialVariantName)}`);
   const newProductId = crypto.randomUUID();
+  const parentProductId = parentIdFromSlug(parentSlug);
 
-  await db.insert(products).values({
-    id: newProductId,
-    parentProductId: parentIdFromSlug(parentSlug),
-    parentProductName: productName,
-    slug: variantSlug,
-    name: `${productName} ${initialVariantName}`.trim(),
-    variantName: initialVariantName,
-    description,
-    category,
-    imageUrl: imageUrl || null,
-    price,
-    compareAtPrice,
-    inventory,
-    isFeatured,
-    isActive,
-    sortOrder: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-
+  let finalImageUrl = imageUrl || undefined;
   const upload = formData.get('image') as File | null;
   const isValidFile = upload && typeof upload === 'object' && 'size' in upload && 'name' in upload;
 
   if (isValidFile && upload.size > 0 && upload.type.startsWith('image/')) {
     const objectKey = `products/${parentSlug}/${Date.now()}-${sanitizeFileName(upload.name)}`;
-    const finalImageUrl = await uploadImageFile(upload, objectKey);
-
-    await db
-      .update(products)
-      .set({ imageUrl: finalImageUrl })
-      .where(eq(products.id, newProductId));
+    finalImageUrl = await uploadImageFile(upload, objectKey);
   }
+
+  await fetchMutation(api.products.createProduct, {
+    adminSecret,
+    product: {
+      id: newProductId,
+      parentProductId,
+      parentProductName: productName,
+      slug: variantSlug,
+      name: `${productName} ${initialVariantName}`.trim(),
+      variantName: initialVariantName,
+      description,
+      category,
+      imageUrl: finalImageUrl,
+      price,
+      compareAtPrice: compareAtPrice ?? undefined,
+      inventory,
+      isFeatured,
+      isActive,
+      sortOrder: 0,
+    },
+  });
 
   revalidatePath('/');
   revalidatePath('/shop');
@@ -247,13 +148,9 @@ export async function createProductAction(formData: FormData) {
   redirect(`/admin/products/${parentSlug}`);
 }
 
-/**
- * Adds a new variant to an existing parent product.
- *
- * @param formData Submitted variant-creation form data.
- */
 export async function createVariantAction(formData: FormData) {
   await requireAdmin();
+  const adminSecret = getAdminSecret();
 
   const parentProductId = String(formData.get('parentProductId') ?? '').trim();
   const parentProductName = String(formData.get('parentProductName') ?? '').trim();
@@ -269,49 +166,41 @@ export async function createVariantAction(formData: FormData) {
   const isFeatured = getBooleanField(formData, 'isFeatured');
   const isActive = getBooleanField(formData, 'isActive');
 
-  if (!parentProductId || !parentProductName || !parentSlug || !variantName) {
-    return;
-  }
+  if (!parentProductId || !parentProductName || !parentSlug || !variantName) return;
 
-  const db = getDb();
-  const lastVariant = await db.query.products.findFirst({
-    where: eq(products.parentProductId, parentProductId),
-    orderBy: [desc(products.sortOrder)],
-  });
+  const groups = await fetchQuery(api.products.listAdminProductGroups, { adminSecret });
+  const group = groups.find((g) => g.id === parentProductId);
+  const lastSort = group?.variants.at(-1)?.sortOrder ?? -1;
   const variantSlug = await getUniqueVariantSlug(`${parentSlug}-${slugify(variantName)}`);
 
-  await db.insert(products).values({
-    id: crypto.randomUUID(),
-    parentProductId,
-    parentProductName,
-    slug: variantSlug,
-    name: `${parentProductName} ${variantName}`.trim(),
-    variantName,
-    description,
-    category,
-    imageUrl: imageUrl || null,
-    price,
-    compareAtPrice,
-    inventory,
-    isFeatured,
-    isActive,
-    sortOrder: sortOrderValue ? toSortOrder(sortOrderValue) : (lastVariant?.sortOrder ?? -1) + 1,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+  await fetchMutation(api.products.createVariant, {
+    adminSecret,
+    product: {
+      id: crypto.randomUUID(),
+      parentProductId,
+      parentProductName,
+      slug: variantSlug,
+      name: `${parentProductName} ${variantName}`.trim(),
+      variantName,
+      description,
+      category,
+      imageUrl: imageUrl || undefined,
+      price,
+      compareAtPrice: compareAtPrice ?? undefined,
+      inventory,
+      isFeatured,
+      isActive,
+      sortOrder: sortOrderValue ? toSortOrder(sortOrderValue) : lastSort + 1,
+    },
   });
 
   revalidateCatalogPaths(parentSlug, variantSlug);
   redirect(`/admin/products/${parentSlug}`);
 }
 
-/**
- * Uploads a shared parent-product image into R2 and applies it to every variant.
- *
- * @param formData Submitted product-image upload form data.
- * @throws Redirects back to the product editor after upload.
- */
 export async function uploadProductImageAction(formData: FormData) {
   await requireAdmin();
+  const adminSecret = getAdminSecret();
 
   const parentProductId = String(formData.get('parentProductId') ?? '').trim();
   const parentSlug = String(formData.get('parentSlug') ?? '').trim();
@@ -321,35 +210,24 @@ export async function uploadProductImageAction(formData: FormData) {
   if (!parentProductId || !parentSlug || !isValidFile || upload.size === 0) {
     redirect(`/admin/products/${parentSlug || ''}`);
   }
-
-  if (!upload.type.startsWith('image/')) {
-    redirect(`/admin/products/${parentSlug}`);
-  }
+  if (!upload.type.startsWith('image/')) redirect(`/admin/products/${parentSlug}`);
 
   const objectKey = `products/${parentSlug}/${Date.now()}-${sanitizeFileName(upload.name)}`;
   const imageUrl = await uploadImageFile(upload, objectKey);
-  const db = getDb();
 
-  await db
-    .update(products)
-    .set({
-      imageUrl,
-      updatedAt: new Date(),
-    })
-    .where(eq(products.parentProductId, parentProductId));
+  await fetchMutation(api.products.updateProductImageUrl, {
+    adminSecret,
+    parentProductId,
+    imageUrl,
+  });
 
   revalidateCatalogPaths(parentSlug);
   redirect(`/admin/products/${parentSlug}`);
 }
 
-/**
- * Uploads a variant image into R2 and applies it to one specific variant.
- *
- * @param formData Submitted variant-image upload form data.
- * @throws Redirects back to the product editor after upload.
- */
 export async function uploadVariantImageAction(formData: FormData) {
   await requireAdmin();
+  const adminSecret = getAdminSecret();
 
   const productId = String(formData.get('productId') ?? '').trim();
   const parentSlug = String(formData.get('parentSlug') ?? '').trim();
@@ -360,34 +238,24 @@ export async function uploadVariantImageAction(formData: FormData) {
   if (!productId || !parentSlug || !variantSlug || !isValidFile || upload.size === 0) {
     redirect(`/admin/products/${parentSlug || ''}`);
   }
-
-  if (!upload.type.startsWith('image/')) {
-    redirect(`/admin/products/${parentSlug}`);
-  }
+  if (!upload.type.startsWith('image/')) redirect(`/admin/products/${parentSlug}`);
 
   const objectKey = `products/${parentSlug}/variants/${variantSlug}/${Date.now()}-${sanitizeFileName(upload.name)}`;
   const imageUrl = await uploadImageFile(upload, objectKey);
-  const db = getDb();
 
-  await db
-    .update(products)
-    .set({
-      imageUrl,
-      updatedAt: new Date(),
-    })
-    .where(eq(products.id, productId));
+  await fetchMutation(api.products.updateProductImageUrl, {
+    adminSecret,
+    productId,
+    imageUrl,
+  });
 
   revalidateCatalogPaths(parentSlug, variantSlug);
   redirect(`/admin/products/${parentSlug}`);
 }
 
-/**
- * Updates shared product details across every variant in a parent product.
- *
- * @param formData Submitted product-management form data.
- */
 export async function updateProductAction(formData: FormData) {
   await requireAdmin();
+  const adminSecret = getAdminSecret();
 
   const parentSlug = String(formData.get('parentSlug') ?? '');
   const parentProductId = String(formData.get('parentProductId') ?? '');
@@ -396,44 +264,24 @@ export async function updateProductAction(formData: FormData) {
   const category = String(formData.get('category') ?? 'Lashes').trim() || 'Lashes';
   const imageUrl = String(formData.get('imageUrl') ?? '').trim();
 
-  if (!parentSlug || !parentProductId || !productName) {
-    return;
-  }
+  if (!parentSlug || !parentProductId || !productName) return;
 
-  const db = getDb();
-  const existingVariants = await db
-    .select({
-      id: products.id,
-      variantName: products.variantName,
-    })
-    .from(products)
-    .where(eq(products.parentProductId, parentProductId));
-
-  for (const variant of existingVariants) {
-    await db
-      .update(products)
-      .set({
-        parentProductName: productName,
-        name: `${productName} ${variant.variantName ?? ''}`.trim(),
-        description,
-        category,
-        imageUrl: imageUrl || null,
-        updatedAt: new Date(),
-      })
-      .where(eq(products.id, variant.id));
-  }
+  await fetchMutation(api.products.updateProductGroup, {
+    adminSecret,
+    parentProductId,
+    productName,
+    description,
+    category,
+    imageUrl: imageUrl || undefined,
+  });
 
   revalidateCatalogPaths(parentSlug);
   redirect(`/admin/products/${parentSlug}`);
 }
 
-/**
- * Updates a single product variant in D1.
- *
- * @param formData Submitted variant-management form data.
- */
 export async function updateVariantAction(formData: FormData) {
   await requireAdmin();
+  const adminSecret = getAdminSecret();
 
   const productId = String(formData.get('productId') ?? '').trim();
   const slug = String(formData.get('slug') ?? '').trim();
@@ -450,137 +298,84 @@ export async function updateVariantAction(formData: FormData) {
   const isActive = getBooleanField(formData, 'isActive');
   const isFeatured = getBooleanField(formData, 'isFeatured');
 
-  if (!productId || !parentSlug || !parentProductName || !variantName) {
-    return;
-  }
+  if (!productId || !parentSlug || !parentProductName || !variantName) return;
 
-  const variantSlug = await getUniqueVariantSlugForUpdate(
-    `${parentSlug}-${slugify(variantName)}`,
+  const variantSlug = await getUniqueVariantSlug(`${parentSlug}-${slugify(variantName)}`, productId);
+
+  await fetchMutation(api.products.updateVariant, {
+    adminSecret,
     productId,
-  );
-  const db = getDb();
-
-  await db
-    .update(products)
-    .set({
-      slug: variantSlug,
-      name: `${parentProductName} ${variantName}`.trim(),
-      variantName,
-      description,
-      category,
-      imageUrl: imageUrl || null,
-      price,
-      compareAtPrice,
-      inventory,
-      sortOrder,
-      isActive,
-      isFeatured,
-      updatedAt: new Date(),
-    })
-    .where(eq(products.id, productId));
+    slug: variantSlug,
+    name: `${parentProductName} ${variantName}`.trim(),
+    variantName,
+    description,
+    category,
+    imageUrl: imageUrl || undefined,
+    price,
+    compareAtPrice: compareAtPrice ?? undefined,
+    inventory,
+    sortOrder,
+    isActive,
+    isFeatured,
+  });
 
   revalidateCatalogPaths(parentSlug, variantSlug, slug);
   redirect(`/admin/products/${parentSlug}`);
 }
 
-/**
- * Sets a product as the hero product displayed on the homepage.
- * Clears isHero from all other products first to ensure only one hero exists.
- *
- * @param formData Must contain `parentProductId` and `parentSlug`.
- * @throws Redirects back to the product editor.
- */
 export async function setHeroProductAction(formData: FormData) {
   await requireAdmin();
-
   const parentProductId = String(formData.get('parentProductId') ?? '').trim();
   const parentSlug = String(formData.get('parentSlug') ?? '').trim();
+  if (!parentProductId || !parentSlug) return;
 
-  if (!parentProductId || !parentSlug) {
-    return;
-  }
-
-  const db = getDb();
-
-  // Clear hero flag from all products
-  await db.update(products).set({ isHero: false, updatedAt: new Date() });
-
-  // Set hero flag on all variants of this parent product
-  await db
-    .update(products)
-    .set({ isHero: true, updatedAt: new Date() })
-    .where(eq(products.parentProductId, parentProductId));
+  await fetchMutation(api.products.setHeroProduct, {
+    adminSecret: getAdminSecret(),
+    parentProductId,
+  });
 
   revalidateCatalogPaths(parentSlug);
   redirect(`/admin/products/${parentSlug}`);
 }
 
-/**
- * Deletes a parent product and all of its variants.
- *
- * @param formData Submitted product-delete form data.
- * @throws Redirects back to the admin dashboard.
- */
 export async function deleteProductAction(formData: FormData) {
   await requireAdmin();
-
   const parentProductId = String(formData.get('parentProductId') ?? '').trim();
   const parentSlug = String(formData.get('parentSlug') ?? '').trim();
+  if (!parentProductId || !parentSlug) return;
 
-  if (!parentProductId || !parentSlug) {
-    return;
-  }
+  const groups = await fetchQuery(api.products.listAdminProductGroups, {
+    adminSecret: getAdminSecret(),
+  });
+  const group = groups.find((g) => g.id === parentProductId);
+  const variants = group?.variants ?? [];
 
-  const db = getDb();
-  const variants = await db
-    .select({ id: products.id, slug: products.slug })
-    .from(products)
-    .where(eq(products.parentProductId, parentProductId));
-
-  if (variants.length === 0) {
-    redirect('/admin');
-  }
-
-  await db.delete(orderItems).where(inArray(orderItems.productId, variants.map((variant) => variant.id)));
-  await db.delete(products).where(eq(products.parentProductId, parentProductId));
+  await fetchMutation(api.products.deleteProductGroup, {
+    adminSecret: getAdminSecret(),
+    parentProductId,
+  });
 
   revalidateCatalogPaths(parentSlug);
-
   for (const variant of variants) {
     revalidatePath(`/products/${variant.slug}`);
   }
-
   redirect('/admin');
 }
 
-/**
- * Deletes a single variant. If it is the last remaining variant, the full product is removed.
- *
- * @param formData Submitted variant-delete form data.
- * @throws Redirects after deletion.
- */
 export async function deleteVariantAction(formData: FormData) {
   await requireAdmin();
-
   const productId = String(formData.get('productId') ?? '').trim();
   const slug = String(formData.get('slug') ?? '').trim();
   const parentProductId = String(formData.get('parentProductId') ?? '').trim();
   const parentSlug = String(formData.get('parentSlug') ?? '').trim();
+  if (!productId || !parentProductId || !parentSlug) return;
 
-  if (!productId || !parentProductId || !parentSlug) {
-    return;
-  }
+  const result = await fetchMutation(api.products.deleteVariant, {
+    adminSecret: getAdminSecret(),
+    productId,
+  });
 
-  const db = getDb();
-  const siblingVariants = await db
-    .select({ id: products.id })
-    .from(products)
-    .where(eq(products.parentProductId, parentProductId));
-
-  await db.delete(orderItems).where(eq(orderItems.productId, productId));
-  await db.delete(products).where(eq(products.id, productId));
-
-  if (siblingVariants.length <= 1) {
+  if (result.siblingCount <= 1) {
     revalidateCatalogPaths(parentSlug, undefined, slug);
     redirect('/admin');
   }
@@ -589,33 +384,14 @@ export async function deleteVariantAction(formData: FormData) {
   redirect(`/admin/products/${parentSlug}`);
 }
 
-/**
- * Updates owner-facing order payment and fulfillment state.
- *
- * @param formData Submitted order-management form data.
- */
 export async function updateOrderAction(formData: FormData) {
   await requireAdmin();
-
   const orderId = String(formData.get('orderId') ?? '');
   const status = String(formData.get('status') ?? 'pending');
   const fulfillmentStatus = String(formData.get('fulfillmentStatus') ?? 'unfulfilled');
+  if (!orderId) return;
 
-  if (!orderId) {
-    return;
-  }
-
-  const db = getDb();
-
-  await db
-    .update(orders)
-    .set({
-      status,
-      fulfillmentStatus,
-      updatedAt: new Date(),
-    })
-    .where(eq(orders.id, orderId));
-
+  await updateOrder({ orderId, status, fulfillmentStatus });
   revalidatePath('/admin');
 }
 
@@ -623,9 +399,7 @@ export async function adminClearCartAction(formData: FormData) {
   await requireAdmin();
   const cartId = String(formData.get('cartId') ?? '');
   if (!cartId) return;
-  const db = getDb();
-  await db.delete(cartItems).where(eq(cartItems.cartId, cartId));
-  await db.update(carts).set({ updatedAt: new Date(), lastActiveAt: new Date() }).where(eq(carts.id, cartId));
+  await adminClearCart(cartId);
   revalidatePath('/admin/carts');
   revalidatePath(`/admin/carts/${cartId}`);
 }
@@ -634,9 +408,7 @@ export async function adminDeleteCartAction(formData: FormData) {
   await requireAdmin();
   const cartId = String(formData.get('cartId') ?? '');
   if (!cartId) return;
-  const db = getDb();
-  await db.delete(cartItems).where(eq(cartItems.cartId, cartId));
-  await db.delete(carts).where(eq(carts.id, cartId));
+  await deleteCart(cartId);
   revalidatePath('/admin');
   revalidatePath('/admin/carts');
   redirect('/admin/carts');
@@ -647,8 +419,7 @@ export async function adminUpdateCartStatusAction(formData: FormData) {
   const cartId = String(formData.get('cartId') ?? '');
   const status = String(formData.get('status') ?? '') as CartStatus;
   if (!cartId || !CART_STATUSES.includes(status)) return;
-  const db = getDb();
-  await db.update(carts).set({ status, updatedAt: new Date() }).where(eq(carts.id, cartId));
+  await updateCartStatus(cartId, status);
   revalidatePath('/admin/carts');
   revalidatePath(`/admin/carts/${cartId}`);
 }
@@ -658,7 +429,9 @@ export async function adminUpdateCartNotesAction(formData: FormData) {
   const cartId = String(formData.get('cartId') ?? '');
   const notes = String(formData.get('notes') ?? '').trim();
   if (!cartId) return;
-  const db = getDb();
-  await db.update(carts).set({ notes: notes || null, updatedAt: new Date() }).where(eq(carts.id, cartId));
+  await updateCartNotes(cartId, notes);
   revalidatePath(`/admin/carts/${cartId}`);
 }
+
+// Re-export for any code that imported getProductImagePath from cloudflare
+export { getProductImagePath };
