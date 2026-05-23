@@ -8,6 +8,7 @@ import { clsx } from 'clsx';
 import { LoadingButton } from './LoadingStates';
 import type { ProductCardProduct } from './ProductCard';
 import type { StoreVariant } from '@/lib/catalog';
+import { motionEaseOut } from '@/lib/motion';
 
 interface Product extends ProductCardProduct {
   images?: string[];
@@ -97,7 +98,7 @@ export default function QuickViewModal({
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 bg-black/50 backdrop-blur-md z-modal-backdrop"
+            className="fixed inset-0 z-modal-backdrop bg-foreground/50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -107,20 +108,20 @@ export default function QuickViewModal({
           {/* Modal */}
           <motion.div
             className="fixed inset-0 lg:inset-8 z-modal flex items-start lg:items-center justify-center p-4 lg:p-0 overflow-y-auto lg:overflow-visible"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={motionEaseOut}
             onClick={onClose}
           >
             <div 
-              className="relative glass-heavy flex w-full max-w-4xl flex-col overflow-visible lg:overflow-hidden rounded-[40px] lg:flex-row lg:h-[560px] my-4 lg:my-0"
+              className="relative glass-heavy my-4 flex w-full max-w-4xl flex-col overflow-visible lg:my-0 lg:h-[560px] lg:flex-row lg:overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close Button — removed from absolute position, placed inline in header below */}
 
               {/* Product Images */}
-              <div className="relative bg-gradient-to-br from-[#f7e6df] via-[#fff7f3] to-[#ecd3ca] lg:w-[45%] lg:h-full">
+              <div className="relative bg-gradient-to-br from-rose-gold-light via-background to-rose-gold lg:h-full lg:w-[45%]">
                 {images.length > 0 ? (
                   <>
                     <div className="aspect-square lg:aspect-auto lg:h-full flex items-center justify-center p-8">
@@ -128,7 +129,7 @@ export default function QuickViewModal({
                         key={currentImageIndex}
                         src={images[currentImageIndex]}
                         alt={product.name}
-                        className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                        className="max-h-full max-w-full object-contain shadow-soft"
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.4 }}
@@ -171,7 +172,7 @@ export default function QuickViewModal({
                 ) : (
                   <div className="aspect-square lg:aspect-auto lg:h-full flex items-center justify-center p-12">
                     <div className="text-center">
-                      <div className="w-40 h-40 bg-gradient-to-br from-pink/20 to-transparent rounded-3xl flex items-center justify-center mx-auto mb-6">
+                      <div className="mx-auto mb-6 flex h-40 w-40 items-center justify-center border border-line bg-rose-gold-light/40">
                         <span className="text-4xl font-display text-foreground">
                           {product.name.split(' ').slice(0, 2).join(' ')}
                         </span>

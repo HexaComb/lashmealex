@@ -68,7 +68,7 @@ export default async function Home() {
               </FadeIn>
 
               <FadeIn direction="right" delay={0.1} className="h-full">
-                <div className="flex h-full flex-col bg-[#f0f0f0]">
+                <div className="flex h-full flex-col bg-photo-well">
                   <div className="flex-1 bg-white p-10 sm:p-16">
                     <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-pink-dark">
                       Featured

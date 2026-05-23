@@ -1,13 +1,15 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { clsx } from 'clsx';
+
+import { motionEaseOut } from '@/lib/motion';
 
 // Product Card Skeleton
 export function ProductCardSkeleton() {
   return (
-    <div className="animate-pulse overflow-hidden rounded-2xl border border-line bg-white/70">
-      <div className="aspect-square bg-gradient-to-br from-[#f3dfd8] to-[#fff7f3] skeleton" />
+    <div className="animate-pulse overflow-hidden border border-line bg-white">
+      <div className="aspect-square bg-gradient-to-br from-rose-gold-light to-background skeleton" />
       <div className="p-5 space-y-3">
         <div className="space-y-2">
           <div className="h-3 w-1/3 rounded-full skeleton" />
@@ -48,7 +50,7 @@ export function PageSkeleton() {
                 <div className="h-12 w-32 rounded-full skeleton" />
               </div>
             </div>
-            <div className="h-96 rounded-3xl border border-line bg-white/70 p-8 skeleton" />
+            <div className="h-96 border border-line bg-white p-8 skeleton" />
           </div>
         </div>
       </div>
@@ -139,9 +141,9 @@ interface ToastProps {
 
 export function Toast({ message, type = 'success', isVisible = false, onClose }: ToastProps) {
   const typeStyles = {
-    success: 'bg-green-500 text-white',
-    error: 'bg-red-500 text-white',
-    info: 'bg-blue-500 text-white'
+    success: 'border border-foreground bg-foreground text-background',
+    error: 'border border-pink-dark bg-pink-dark text-white',
+    info: 'border border-line bg-surface text-foreground',
   };
 
   return (
@@ -149,19 +151,19 @@ export function Toast({ message, type = 'success', isVisible = false, onClose }:
       {isVisible && (
         <motion.div
           className={clsx(
-            'fixed bottom-4 right-4 z-toast px-6 py-3 rounded-lg shadow-lg',
+            'fixed bottom-4 right-4 z-toast border px-6 py-3 shadow-soft',
             'flex items-center gap-3 max-w-sm',
             typeStyles[type]
           )}
           initial={{ opacity: 0, y: 20, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.9 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          transition={motionEaseOut}
         >
-          <span className="flex-1">{message}</span>
+          <span className="flex-1 text-sm">{message}</span>
           <button
             onClick={onClose}
-            className="text-white/80 hover:text-white transition-colors"
+            className="focus-ring p-1 opacity-70 transition-opacity hover:opacity-100"
             aria-label="Close notification"
           >
             ×
@@ -179,14 +181,20 @@ interface AnimatedCounterProps {
   className?: string;
 }
 
-export function AnimatedCounter({ value, duration = 1, className }: AnimatedCounterProps) {
+export function AnimatedCounter({ value, duration = 0.25, className }: AnimatedCounterProps) {
+  const reduceMotion = useReducedMotion();
+
+  if (reduceMotion) {
+    return <span className={className}>{value}</span>;
+  }
+
   return (
     <motion.span
       className={className}
       key={value}
-      initial={{ opacity: 0, scale: 0.5 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration, type: 'spring', stiffness: 300 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ ...motionEaseOut, duration }}
     >
       {value}
     </motion.span>
@@ -231,6 +239,12 @@ export function FadeIn({
   direction = 'up',
   className 
 }: FadeInProps) {
+  const reduceMotion = useReducedMotion();
+
+  if (reduceMotion) {
+    return <div className={className}>{children}</div>;
+  }
+
   const getInitialPosition = () => {
     switch (direction) {
       case 'up': return { y: 20 };

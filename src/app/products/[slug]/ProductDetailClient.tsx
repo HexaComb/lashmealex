@@ -110,7 +110,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
           {/* Product Images */}
           <FadeIn direction="left">
             <div className="space-y-4">
-              <div className="relative aspect-square overflow-hidden rounded-[30px] border border-line bg-gradient-to-br from-[#f7e6df] via-[#fff7f3] to-[#ecd3ca]">
+              <div className="relative aspect-square overflow-hidden border border-line bg-gradient-to-br from-rose-gold-light via-background to-rose-gold">
                 {images.length > 0 ? (
                   <motion.img
                     key={currentImageIndex}
@@ -231,7 +231,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                       <span className="text-2xl text-muted line-through">
                         ${selectedVariant.compareAtPrice}
                       </span>
-                      <span className="rounded-full bg-[#7f304d] px-3 py-1 text-sm font-semibold text-white">
+                      <span className="rounded-full bg-pink-dark px-3 py-1 text-sm font-semibold text-white">
                         Save ${selectedVariant.compareAtPrice - selectedVariant.price}
                       </span>
                     </>
@@ -262,7 +262,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
               )}
 
               {/* Add to Cart Section */}
-              <div className="space-y-6 rounded-[28px] border border-line bg-white/80 p-6 shadow-md">
+              <div className="space-y-6 border border-line bg-white p-6 shadow-card">
                 {product.variants.length > 0 && (
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold text-foreground">Choose Variant</h3>
@@ -338,7 +338,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                     'w-full py-4 text-lg font-semibold',
                     selectedVariant?.inStock
                       ? 'btn-primary'
-                      : 'cursor-not-allowed rounded-full bg-[#e6dfdb] text-muted'
+                      : 'cursor-not-allowed bg-line text-muted'
                   )}
                   onClick={handleAddToCart}
                 >
@@ -365,7 +365,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
               {product.specifications && Object.keys(product.specifications).length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground">Specifications</h3>
-                  <div className="space-y-3 rounded-[24px] border border-line bg-white/78 p-6 shadow-sm">
+                  <div className="space-y-3 border border-line bg-white p-6 shadow-card">
                     {Object.entries(product.specifications).map(([key, value]) => (
                       <div key={key} className="flex justify-between border-b border-line py-2 last:border-b-0">
                         <span className="text-muted capitalize">{key}</span>

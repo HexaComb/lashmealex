@@ -7,6 +7,7 @@ import { LoadingButton } from './LoadingStates';
 import { useCart } from '@/context/CartContext';
 import { createCheckoutSessionAction } from '@/app/cart/actions';
 import { analytics } from '@/lib/analytics';
+import { motionPanel } from '@/lib/motion';
 
 export default function Cart() {
   const {
@@ -54,7 +55,7 @@ export default function Cart() {
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 bg-black/60 z-modal-backdrop backdrop-blur-sm"
+            className="fixed inset-0 z-modal-backdrop bg-foreground/50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -67,7 +68,7 @@ export default function Cart() {
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            transition={motionPanel}
           >
             <div className="h-full flex flex-col">
               {/* Header */}

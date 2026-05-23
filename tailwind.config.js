@@ -23,6 +23,7 @@ module.exports = {
         'panel-heavy': '#ffffff',
         'surface': '#ffffff',
         'surface-hover': '#f8f8f8',
+        'photo-well': '#f0f0f0',
       },
       fontFamily: {
         'display': ['var(--font-display)', 'serif'],

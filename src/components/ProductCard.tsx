@@ -65,7 +65,7 @@ export default function ProductCard({
   return (
     <motion.article
       className={clsx(
-        'group relative cursor-pointer overflow-hidden rounded-none border border-line bg-white transition-all duration-300 hover:shadow-xl',
+        'group relative cursor-pointer overflow-hidden rounded-none border border-line bg-white transition-shadow duration-300 hover:shadow-soft',
         !product.inStock && 'opacity-70',
         className
       )}
@@ -74,7 +74,7 @@ export default function ProductCard({
       onClick={handleQuickView}
       layout
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-[#f4f4f4]">
+      <div className="relative aspect-[4/5] overflow-hidden bg-photo-well">
         {product.image ? (
           <>
             <img
@@ -98,7 +98,7 @@ export default function ProductCard({
                 <button
                   onClick={handleAddToCart}
                   disabled={!product.inStock}
-                  className="w-full bg-white py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground transition-colors hover:bg-pink hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="focus-ring w-full bg-white py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground transition-colors hover:bg-pink-dark hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {product.inStock ? 'Add to Bag' : 'Out of Stock'}
                 </button>
@@ -146,7 +146,7 @@ export default function ProductCard({
 
         <button
           onClick={handleToggleWishlist}
-          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-foreground shadow-sm transition-all hover:scale-110 hover:text-pink-dark"
+          className="focus-ring absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-foreground shadow-card transition-colors hover:text-pink-dark"
           aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
         >
           <Heart size={14} className={clsx(isWishlisted && 'fill-pink-dark text-pink-dark')} />

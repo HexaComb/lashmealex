@@ -40,7 +40,7 @@ export default function CartStartModal() {
     <AnimatePresence>
       {isModalOpen && (
         <motion.div
-          className="fixed inset-0 z-modal flex items-center justify-center bg-black/50 px-4"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-foreground/50 px-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -66,7 +66,7 @@ export default function CartStartModal() {
               <button
                 type="button"
                 onClick={closeStartModal}
-                className="p-1 text-muted transition-colors hover:text-foreground"
+                className="focus-ring p-2 text-muted transition-colors hover:text-foreground"
                 aria-label="Close"
               >
                 <X size={18} />

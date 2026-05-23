@@ -7,6 +7,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Search, ShoppingBag, Menu, X, Heart, User, Calendar } from 'lucide-react';
 import { clsx } from 'clsx';
 
+import { motionEaseOut } from '@/lib/motion';
+
 interface HeaderProps {
   cartItemCount?: number;
   wishlistItemCount?: number;
@@ -150,7 +152,7 @@ export default function Header({
                   className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center bg-foreground text-[9px] font-bold text-white"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 500 }}
+                  transition={motionEaseOut}
                 >
                   {cartItemCount}
                 </motion.span>
@@ -188,10 +190,10 @@ export default function Header({
                     key={item.label}
                     href={item.href}
                     className={clsx(
-                      'block border-l-2 pl-4 text-sm font-bold uppercase tracking-[0.2em] transition-colors hover:text-pink-dark',
+                      'block border px-4 py-3 text-sm font-bold uppercase tracking-[0.2em] transition-colors hover:text-pink-dark',
                       isActiveRoute(item.href)
-                        ? 'border-pink-dark text-pink-dark'
-                        : 'border-transparent text-foreground'
+                        ? 'border-foreground bg-surface-hover text-pink-dark'
+                        : 'border-line text-foreground hover:border-foreground'
                     )}
                     onClick={() => setIsMenuOpen(false)}
                   >

@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, TrendingUp, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+import { motionEaseOut } from '@/lib/motion';
+
 interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -124,7 +126,7 @@ export default function SearchModal({
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 bg-black/50 z-modal-backdrop"
+            className="fixed inset-0 z-modal-backdrop bg-foreground/50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -137,9 +139,9 @@ export default function SearchModal({
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            transition={motionEaseOut}
           >
-            <div className="glass-heavy overflow-hidden rounded-[28px] shadow-2xl">
+            <div className="glass-heavy overflow-hidden">
               {/* Search Input */}
               <div className="p-6 border-b border-line">
                 <div className="flex items-center gap-4">
@@ -182,7 +184,7 @@ export default function SearchModal({
                           <motion.button
                             key={result.id}
                             onClick={() => handleResultClick(result)}
-                            className="flex w-full items-center gap-4 rounded-xl p-3 text-left transition-colors hover:bg-surface-hover"
+                            className="flex w-full items-center gap-4 border border-transparent p-3 text-left transition-colors hover:border-line hover:bg-surface-hover"
                             whileHover={{ x: 4 }}
                           >
                             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#f3dfd8] to-[#fff7f3]">

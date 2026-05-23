@@ -16,6 +16,7 @@
   --panel-heavy: #ffffff;
   --surface: #ffffff;
   --surface-hover: #f8f8f8;
+  --photo-well: #f0f0f0;
   --shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.04);
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
   --transition-fast: 120ms ease;
@@ -39,6 +40,7 @@
   --color-panel-heavy: var(--panel-heavy);
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
+  --color-photo-well: var(--photo-well);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
   --shadow-soft: var(--shadow-soft);
@@ -241,4 +243,17 @@ textarea {
 .eyelash-blink {
   transform-origin: center 10px;
   animation: eyelashBlink 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .skeleton,
+  .fade-in,
+  .slide-up,
+  .eyelash-blink {
+    animation: none;
+  }
 }
