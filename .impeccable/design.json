@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-22T00:00:00.000Z",
+  "title": "Design System: Lashmealex",
+  "extensions": {
+    "colorMeta": {
+      "warm-parchment": {
+        "role": "neutral",
+        "displayName": "Warm Parchment",
+        "canonical": "oklch(98% 0.008 95)",
+        "tonalRamp": ["#1a1917", "#3d3a36", "#6b6560", "#9a948c", "#c4bdb4", "#e8e4dc", "#f5f2ec", "#faf9f6"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(18% 0.005 285)",
+        "tonalRamp": ["#000000", "#0a0a0a", "#121212", "#2a2a2a", "#444444", "#626262", "#8a8a8a", "#b0b0b0"]
+      },
+      "rose-accent": {
+        "role": "primary",
+        "displayName": "Rose Accent",
+        "canonical": "oklch(65% 0.14 5)",
+        "tonalRamp": ["#3d1524", "#5c2235", "#7a3046", "#9a3f58", "#b95174", "#d46a8c", "#e7a4b8", "#f5dde8"]
+      },
+      "rose-deep": {
+        "role": "primary",
+        "displayName": "Rose Deep",
+        "canonical": "oklch(55% 0.13 5)",
+        "tonalRamp": ["#2a0f18", "#421525", "#5a1c32", "#73243f", "#8b2d4c", "#b95174", "#d46a8c", "#e7a4b8"]
+      },
+      "rose-gold": {
+        "role": "secondary",
+        "displayName": "Rose Gold",
+        "canonical": "oklch(78% 0.06 55)",
+        "tonalRamp": ["#3d2e28", "#5c453c", "#7a5c50", "#997464", "#b88c7a", "#d9b09f", "#e8cfc2", "#f5ddd2"]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "oklch(90% 0.002 285)",
+        "tonalRamp": ["#4a4a4a", "#626262", "#7a7a7a", "#949494", "#aeaeae", "#c8c8c8", "#d8d8d8", "#e2e2e2"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero headlines and emotional section openers only."
+      },
+      "label": {
+        "displayName": "Micro Label",
+        "purpose": "Eyebrows, stat columns, filter chips — always uppercase with wide tracking."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1)",
+        "purpose": "Light containment on .glass panels."
+      },
+      {
+        "name": "soft",
+        "value": "0 12px 30px rgba(0, 0, 0, 0.04)",
+        "purpose": "Rare emphasis on .glass-heavy blocks."
+      }
+    ],
+    "motion": [
+      {
+        "name": "transition-fast",
+        "value": "120ms ease",
+        "purpose": "Icon and micro-interactions."
+      },
+      {
+        "name": "transition-base",
+        "value": "180ms ease",
+        "purpose": "Buttons, borders, color shifts."
+      },
+      {
+        "name": "fade-in",
+        "value": "0.6s ease-out",
+        "purpose": "Section entrances via Framer Motion / CSS."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Default CTA — ink fill, square, uppercase.",
+      "html": "<button class=\"ds-btn-primary\">Shop Now</button>",
+      "css": ".ds-btn-primary { background: #121212; color: #faf9f6; border: 1px solid #121212; border-radius: 0; padding: 16px 24px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: background 180ms ease, border-color 180ms ease, color 180ms ease; } .ds-btn-primary:hover { background: #b95174; border-color: #b95174; color: #ffffff; } .ds-btn-primary:focus-visible { outline: 1.5px solid #b95174; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Outlined alternate action.",
+      "html": "<button class=\"ds-btn-secondary\">See Collection</button>",
+      "css": ".ds-btn-secondary { background: transparent; color: #121212; border: 1px solid #121212; border-radius: 0; padding: 16px 24px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: background 180ms ease, color 180ms ease; } .ds-btn-secondary:hover { background: #121212; color: #faf9f6; } .ds-btn-secondary:focus-visible { outline: 1.5px solid #b95174; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Textual tertiary — bottom border only.",
+      "html": "<button class=\"ds-btn-ghost\">View details</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: #121212; border: none; border-bottom: 1px solid #121212; border-radius: 0; padding: 4px 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: color 180ms ease, border-color 180ms ease; } .ds-btn-ghost:hover { color: #b95174; border-bottom-color: #b95174; }"
+    },
+    {
+      "name": "Micro Label",
+      "kind": "chip",
+      "refersTo": "label",
+      "description": "Eyebrow / section kicker above display type.",
+      "html": "<p class=\"ds-label\">Lashmealex</p>",
+      "css": ".ds-label { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4em; color: #b95174; margin: 0; }"
+    },
+    {
+      "name": "Editorial Grid Cell",
+      "kind": "card",
+      "refersTo": "card-editorial",
+      "description": "Hero / feature panel with ink border grid.",
+      "html": "<div class=\"ds-editorial-cell\"><p class=\"ds-label\">Featured</p><h2 class=\"ds-headline\">Cashmere Classic</h2><p class=\"ds-body\">Hand-selected tray for salon retention.</p></div>",
+      "css": ".ds-editorial-cell { background: #ffffff; border: 1px solid #121212; padding: 40px; } .ds-headline { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 36px; font-weight: 500; line-height: 1.1; color: #121212; margin: 32px 0 16px; } .ds-body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.6; color: #626262; margin: 0; max-width: 42ch; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Cart email and admin form fields.",
+      "html": "<input class=\"ds-input\" type=\"email\" placeholder=\"you@example.com\" />",
+      "css": ".ds-input { width: 100%; padding: 12px 16px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-size: 14px; color: #121212; background: #ffffff; border: 1px solid #e2e2e2; border-radius: 0; transition: border-color 180ms ease; } .ds-input:focus { outline: none; border-color: #121212; } .ds-input:focus-visible { box-shadow: 0 0 0 1.5px #b95174; }"
+    },
+    {
+      "name": "Site Navigation",
+      "kind": "nav",
+      "refersTo": "nav-header",
+      "description": "Sticky top bar with ink icons.",
+      "html": "<nav class=\"ds-nav\"><span class=\"ds-nav-brand\">Lashmealex</span><a class=\"ds-nav-link\" href=\"#\">Shop</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; background: #faf9f6; border-bottom: 1px solid #e2e2e2; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; } .ds-nav-brand { font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #121212; } .ds-nav-link { font-size: 14px; color: #121212; text-decoration: none; } .ds-nav-link:hover { color: #b95174; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Curated Tray",
+    "overview": "Lashmealex reads like a salon backbar translated into pixels: warm parchment grounds, ink-black structure, and rose accents that appear where a practitioner would point, not as wallpaper. Layout favors editorial grids and 1px borders over soft card stacks.",
+    "keyCharacteristics": [
+      "Light-only, warm neutral canvas with ink structure",
+      "Zero default border-radius on UI chrome",
+      "Uppercase micro-labels with wide tracking",
+      "Depth via borders and tonal panels, not floating shadows",
+      "Accent rose used sparingly for emphasis and hover feedback"
+    ],
+    "rules": [
+      {
+        "name": "The Accent Sparingly Rule",
+        "body": "Rose and rose-gold together should occupy well under 30% of any screen.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink Grid Rule",
+        "body": "Major layout blocks use 1px ink borders to form editorial cells.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Display Voice Rule",
+        "body": "Only Cormorant carries emotional weight.",
+        "section": "typography"
+      },
+      {
+        "name": "The Border-First Rule",
+        "body": "If you need separation, add a hairline or ink border before adding shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the page on warm parchment with ink type and square grids.",
+      "Do use Cormorant for emotional headlines and Jakarta for everything functional.",
+      "Do reserve rose-deep for hovers, eyebrows, and one primary CTA per view."
+    ],
+    "donts": [
+      "Don't use cutesy kawaii beauty: glitter UI, bubble fonts, infantilizing pink floods.",
+      "Don't ship generic Shopify theme energy: rounded card grids, pastel gradients.",
+      "Don't use AI-slop patterns: decorative glassmorphism, gradient text, side-stripe callouts.",
+      "Don't add border-radius to buttons, cards, or inputs (only full for avatars/dots)."
+    ]
+  }
+}
