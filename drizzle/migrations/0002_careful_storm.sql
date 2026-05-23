@@ -1,1 +1,0 @@
-ALTER TABLE `products` ADD `is_hero` integer DEFAULT false NOT NULL;
