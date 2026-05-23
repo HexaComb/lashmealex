@@ -1,0 +1,11 @@
+# Optional: use only to export legacy D1 data before decommissioning.
+# wrangler d1 export lashmealex-d1 --remote --config wrangler.d1-export.toml --output=d1-export.sql
+
+"$schema" = "node_modules/wrangler/config-schema.json"
+name = "lashmealex-d1-export"
+account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lashmealex-d1"
+database_id = "5fed034e-a75f-4b48-b34f-a51c467ed3bd"
