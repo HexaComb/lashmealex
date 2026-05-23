@@ -1,82 +1,48 @@
 import "server-only";
 
-import { desc, eq, sql } from "drizzle-orm";
+import { fetchMutation, fetchQuery } from "convex/nextjs";
 
-import { orderItems, orders } from "@/db/schema";
+import { api } from "../../convex/_generated/api";
 import type { CartWithItems } from "./cart";
-
-import { getDb } from "./cloudflare";
+import { getAdminSecret, timestampToDate } from "./convex";
 
 export async function createOrderFromCart(cart: CartWithItems, stripeSessionId: string): Promise<string> {
-  const db = getDb();
-  const now = new Date();
-  const orderId = crypto.randomUUID();
-
-  await db.insert(orders).values({
-    id: orderId,
+  return fetchMutation(api.orders.createOrderFromCart, {
+    cartId: cart.id,
     stripeSessionId,
-    status: "paid",
-    fulfillmentStatus: "unfulfilled",
-    subtotal: cart.subtotal,
-    total: cart.subtotal,
-    customerEmail: cart.email,
-    customerName: cart.name,
-    createdAt: now,
-    updatedAt: now,
   });
-
-  if (cart.items.length > 0) {
-    await db.insert(orderItems).values(
-      cart.items.map((item) => ({
-        id: crypto.randomUUID(),
-        orderId,
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.price,
-      })),
-    );
-  }
-
-  return orderId;
 }
 
-/**
- * Lists orders for the owner dashboard.
- *
- * @returns Orders sorted from newest to oldest.
- */
-export async function listAdminOrders() {
-  const db = getDb();
-
-  return db.select().from(orders).orderBy(desc(orders.createdAt));
-}
-
-/**
- * Builds summary values for the owner dashboard.
- *
- * @returns Order count, paid sales, and units sold.
- */
-export async function getAdminOrderStats() {
-  const db = getDb();
-
-  const [orderSummary] = await db
-    .select({
-      orderCount: sql<number>`count(*)`,
-      grossSales: sql<number>`coalesce(sum(case when ${orders.status} = 'paid' then ${orders.total} else 0 end), 0)`,
-    })
-    .from(orders);
-
-  const [itemSummary] = await db
-    .select({
-      unitsSold: sql<number>`coalesce(sum(${orderItems.quantity}), 0)`,
-    })
-    .from(orderItems)
-    .innerJoin(orders, eq(orderItems.orderId, orders.id))
-    .where(eq(orders.status, "paid"));
-
+export async function getOrderByStripeSessionId(stripeSessionId: string) {
+  const row = await fetchQuery(api.orders.getOrderByStripeSessionId, { stripeSessionId });
+  if (!row) return null;
   return {
-    orderCount: orderSummary?.orderCount ?? 0,
-    grossSales: orderSummary?.grossSales ?? 0,
-    unitsSold: itemSummary?.unitsSold ?? 0,
+    ...row,
+    createdAt: timestampToDate(row.createdAt),
+    updatedAt: timestampToDate(row.updatedAt),
   };
+}
+
+export async function listAdminOrders() {
+  const rows = await fetchQuery(api.orders.listAdminOrders, { adminSecret: getAdminSecret() });
+  return rows.map((row) => ({
+    ...row,
+    createdAt: timestampToDate(row.createdAt),
+    updatedAt: timestampToDate(row.updatedAt),
+  }));
+}
+
+export async function getAdminOrderStats() {
+  return fetchQuery(api.orders.getAdminOrderStats, { adminSecret: getAdminSecret() });
+}
+
+export async function updateOrder(input: {
+  orderId: string;
+  status: string;
+  fulfillmentStatus: string;
+}) {
+  await fetchMutation(api.orders.updateOrder, {
+    adminSecret: getAdminSecret(),
+    ...input,
+  });
 }

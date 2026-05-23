@@ -1,17 +1,9 @@
-# Server Utilities
+# Server utilities
 
-This directory contains server-side helpers shared by the storefront and admin surfaces.
-
-## Modules
-
-- `cloudflare.ts`: reads the active Cloudflare request context and returns the D1 client.
-- `catalog.ts`: storefront and admin product queries.
-- `orders.ts`: owner-facing order summary queries.
-- `admin-auth.ts`: simple password-based admin session handling.
-- `money.ts`: cent-to-USD formatting helpers.
-
-## Environment
-
-- `DB` must be bound in the Cloudflare Worker runtime.
-- `ADMIN_PASSWORD` protects the `/admin` area.
-- `ADMIN_SESSION_SECRET` signs the admin session cookie.
+- `catalog.ts`, `cart.ts`, `orders.ts` — thin wrappers around Convex `fetchQuery` / `fetchMutation`
+- `convex.ts` — admin secret and timestamp helpers
+- `product-images.ts` — R2 uploads and image proxy helpers
+- `stripe.ts` — Stripe configuration
+- `admin-auth.ts` — password cookie sessions for `/admin`
+- `money.ts` — cent-to-display formatting
+- `cart-constants.ts` — cart validation constants
