@@ -8,7 +8,6 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import Script from 'next/script';
 
 const CONSENT_KEY = 'lashmealex_cookie_consent';
 
@@ -21,8 +20,6 @@ interface ConsentContextValue {
 }
 
 const ConsentContext = createContext<ConsentContextValue | null>(null);
-
-const token = process.env.NEXT_PUBLIC_CF_ANALYTICS_TOKEN;
 
 export function ConsentProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<ConsentStatus>('pending');
@@ -44,19 +41,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
     setStatus('declined');
   }, []);
 
-  return (
-    <ConsentContext.Provider value={{ status, accept, decline }}>
-      {/* Inject Cloudflare Web Analytics beacon only after explicit consent */}
-      {status === 'accepted' && token && (
-        <Script
-          src="https://static.cloudflareinsights.com/beacon.min.js"
-          data-cf-beacon={`{"token":"${token}"}`}
-          strategy="afterInteractive"
-        />
-      )}
-      {children}
-    </ConsentContext.Provider>
-  );
+  return <ConsentContext.Provider value={{ status, accept, decline }}>{children}</ConsentContext.Provider>;
 }
 
 export function useConsent() {

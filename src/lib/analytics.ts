@@ -1,18 +1,13 @@
-// Cloudflare Web Analytics — custom event tracking (client-side only)
-// Beacon is loaded conditionally by ConsentContext after the user accepts cookies.
-
 declare global {
   interface Window {
-    __cfBeacon?: {
-      track: (name: string, data?: Record<string, unknown>) => void;
-    };
+    dispatchEvent(event: Event): boolean;
   }
 }
 
 function trackEvent(name: string, data?: Record<string, unknown>) {
   if (typeof window === 'undefined') return;
   try {
-    window.__cfBeacon?.track(name, data);
+    window.dispatchEvent(new CustomEvent('lashmealex:analytics', { detail: { name, data } }));
   } catch {
     // Never let analytics errors surface to users
   }

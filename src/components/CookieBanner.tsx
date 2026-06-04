@@ -22,16 +22,8 @@ export default function CookieBanner() {
             Privacy Notice
           </p>
           <p className="text-xs leading-relaxed text-muted mb-5">
-            We use Cloudflare Web Analytics to understand how visitors use our site.
-            No cross-site tracking or advertising cookies are used.{' '}
-            <a
-              href="https://www.cloudflare.com/privacypolicy/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-foreground transition-colors"
-            >
-              Learn more
-            </a>
+            We use privacy-conscious analytics to understand how visitors use our site.
+            No cross-site tracking or advertising cookies are used.
           </p>
           <div className="flex gap-3">
             <button
