@@ -13,6 +13,8 @@ export const productFields = {
   price: v.number(),
   compareAtPrice: v.optional(v.number()),
   inventory: v.number(),
+  imageStorageId: v.optional(v.id("_storage")),
+  // Deprecated: fallback for older rows that do not have Convex storage yet.
   imageUrl: v.optional(v.string()),
   isFeatured: v.boolean(),
   isHero: v.boolean(),

@@ -5,12 +5,12 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { api } from '../../../convex/_generated/api';
+import type { Id } from '../../../convex/_generated/dataModel';
 import { requireAdmin } from '@/lib/admin-auth';
 import { adminClearCart, deleteCart, updateCartNotes, updateCartStatus } from '@/lib/cart';
 import { CART_STATUSES, type CartStatus } from '@/lib/cart-constants';
 import { getAdminSecret } from '@/lib/convex';
 import { updateOrder } from '@/lib/orders';
-import { getProductImagePath, putProductImage } from '@/lib/product-images';
 
 function slugify(value: string) {
   return value
@@ -65,17 +65,22 @@ function getBooleanField(formData: FormData, key: string) {
   return formData.get(key) === 'on';
 }
 
-function sanitizeFileName(fileName: string) {
-  const extensionIndex = fileName.lastIndexOf('.');
-  const baseName = extensionIndex >= 0 ? fileName.slice(0, extensionIndex) : fileName;
-  const extension = extensionIndex >= 0 ? fileName.slice(extensionIndex).toLowerCase() : '';
-  const sanitizedBase = slugify(baseName) || 'image';
-  return `${sanitizedBase}${extension}`;
-}
+async function uploadImageFile(file: File, adminSecret: string): Promise<Id<'_storage'>> {
+  const uploadUrl = await fetchMutation(api.products.generateProductImageUploadUrl, {
+    adminSecret,
+  });
+  const result = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    body: file,
+  });
 
-async function uploadImageFile(file: File, objectKey: string) {
-  const bytes = await file.arrayBuffer();
-  return putProductImage(objectKey, bytes, file.type || 'application/octet-stream');
+  if (!result.ok) {
+    throw new Error(`Convex image upload failed with status ${result.status}`);
+  }
+
+  const body = (await result.json()) as { storageId: Id<'_storage'> };
+  return body.storageId;
 }
 
 function revalidateCatalogPaths(parentSlug: string, variantSlug?: string, previousVariantSlug?: string) {
@@ -113,12 +118,13 @@ export async function createProductAction(formData: FormData) {
   const parentProductId = parentIdFromSlug(parentSlug);
 
   let finalImageUrl = imageUrl || undefined;
+  let imageStorageId: Id<'_storage'> | undefined;
   const upload = formData.get('image') as File | null;
   const isValidFile = upload && typeof upload === 'object' && 'size' in upload && 'name' in upload;
 
   if (isValidFile && upload.size > 0 && upload.type.startsWith('image/')) {
-    const objectKey = `products/${parentSlug}/${Date.now()}-${sanitizeFileName(upload.name)}`;
-    finalImageUrl = await uploadImageFile(upload, objectKey);
+    imageStorageId = await uploadImageFile(upload, adminSecret);
+    finalImageUrl = undefined;
   }
 
   await fetchMutation(api.products.createProduct, {
@@ -132,6 +138,7 @@ export async function createProductAction(formData: FormData) {
       variantName: initialVariantName,
       description,
       category,
+      imageStorageId,
       imageUrl: finalImageUrl,
       price,
       compareAtPrice: compareAtPrice ?? undefined,
@@ -212,13 +219,12 @@ export async function uploadProductImageAction(formData: FormData) {
   }
   if (!upload.type.startsWith('image/')) redirect(`/admin/products/${parentSlug}`);
 
-  const objectKey = `products/${parentSlug}/${Date.now()}-${sanitizeFileName(upload.name)}`;
-  const imageUrl = await uploadImageFile(upload, objectKey);
+  const imageStorageId = await uploadImageFile(upload, adminSecret);
 
-  await fetchMutation(api.products.updateProductImageUrl, {
+  await fetchMutation(api.products.updateProductImageStorageId, {
     adminSecret,
     parentProductId,
-    imageUrl,
+    imageStorageId,
   });
 
   revalidateCatalogPaths(parentSlug);
@@ -240,13 +246,12 @@ export async function uploadVariantImageAction(formData: FormData) {
   }
   if (!upload.type.startsWith('image/')) redirect(`/admin/products/${parentSlug}`);
 
-  const objectKey = `products/${parentSlug}/variants/${variantSlug}/${Date.now()}-${sanitizeFileName(upload.name)}`;
-  const imageUrl = await uploadImageFile(upload, objectKey);
+  const imageStorageId = await uploadImageFile(upload, adminSecret);
 
-  await fetchMutation(api.products.updateProductImageUrl, {
+  await fetchMutation(api.products.updateProductImageStorageId, {
     adminSecret,
     productId,
-    imageUrl,
+    imageStorageId,
   });
 
   revalidateCatalogPaths(parentSlug, variantSlug);
@@ -262,7 +267,6 @@ export async function updateProductAction(formData: FormData) {
   const productName = String(formData.get('productName') ?? '').trim();
   const description = String(formData.get('description') ?? '').trim();
   const category = String(formData.get('category') ?? 'Lashes').trim() || 'Lashes';
-  const imageUrl = String(formData.get('imageUrl') ?? '').trim();
 
   if (!parentSlug || !parentProductId || !productName) return;
 
@@ -272,7 +276,6 @@ export async function updateProductAction(formData: FormData) {
     productName,
     description,
     category,
-    imageUrl: imageUrl || undefined,
   });
 
   revalidateCatalogPaths(parentSlug);
@@ -290,7 +293,6 @@ export async function updateVariantAction(formData: FormData) {
   const variantName = String(formData.get('variantName') ?? '').trim();
   const description = String(formData.get('description') ?? '').trim();
   const category = String(formData.get('category') ?? 'Lashes').trim() || 'Lashes';
-  const imageUrl = String(formData.get('imageUrl') ?? '').trim();
   const price = toCents(formData.get('price'));
   const compareAtPrice = toNullableCents(formData.get('compareAtPrice'));
   const inventory = toInventoryCount(formData.get('inventory'));
@@ -310,7 +312,6 @@ export async function updateVariantAction(formData: FormData) {
     variantName,
     description,
     category,
-    imageUrl: imageUrl || undefined,
     price,
     compareAtPrice: compareAtPrice ?? undefined,
     inventory,
@@ -432,6 +433,3 @@ export async function adminUpdateCartNotesAction(formData: FormData) {
   await updateCartNotes(cartId, notes);
   revalidatePath(`/admin/carts/${cartId}`);
 }
-
-// Re-export for any code that imported getProductImagePath from cloudflare
-export { getProductImagePath };

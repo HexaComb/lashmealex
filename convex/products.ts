@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { type MutationCtx, type QueryCtx, mutation, query } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 import { assertAdminSecret } from "./lib/admin";
 import {
   groupAdminProducts,
@@ -21,6 +22,16 @@ async function getProductBySlug(ctx: QueryCtx | MutationCtx, slug: string) {
     .first();
 }
 
+async function resolveProductImageUrls(ctx: QueryCtx, rows: Doc<"products">[]) {
+  return Promise.all(
+    rows.map(async (row) => {
+      if (!row.imageStorageId) return row;
+      const imageUrl = await ctx.storage.getUrl(row.imageStorageId);
+      return imageUrl ? { ...row, imageUrl } : row;
+    }),
+  );
+}
+
 export const listStoreProducts = query({
   args: {
     featuredOnly: v.optional(v.boolean()),
@@ -39,7 +50,7 @@ export const listStoreProducts = query({
       .filter((row) => matchesStoreQuery(row, args.query));
 
     filtered.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
-    return groupProducts(filtered);
+    return groupProducts(await resolveProductImageUrls(ctx, filtered));
   },
 });
 
@@ -51,7 +62,7 @@ export const getStoreProductBySlug = query({
       .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .collect();
     rows.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
-    const products = groupProducts(rows);
+    const products = groupProducts(await resolveProductImageUrls(ctx, rows));
     return products.find((p) => p.slug === args.slug) ?? null;
   },
 });
@@ -64,7 +75,7 @@ export const getHeroProduct = query({
       .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .collect();
     rows.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
-    const products = groupProducts(rows);
+    const products = groupProducts(await resolveProductImageUrls(ctx, rows));
     return products.find((p) => p.isHero) ?? products.find((p) => p.isFeatured) ?? products[0] ?? null;
   },
 });
@@ -90,7 +101,7 @@ export const getRelatedStoreProducts = query({
       .sort((a, b) => a.sortOrder - b.sortOrder || b.inventory - a.inventory)
       .slice(0, 8);
 
-    return groupProducts(related)
+    return groupProducts(await resolveProductImageUrls(ctx, related))
       .filter((p) => p.parentProductId !== args.excludeParentId)
       .slice(0, 4);
   },
@@ -102,7 +113,7 @@ export const listAdminProducts = query({
     assertAdminSecret(args.adminSecret);
     const rows = await ctx.db.query("products").collect();
     rows.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
-    return rows;
+    return resolveProductImageUrls(ctx, rows);
   },
 });
 
@@ -112,7 +123,7 @@ export const listAdminProductGroups = query({
     assertAdminSecret(args.adminSecret);
     const rows = await ctx.db.query("products").collect();
     rows.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
-    return groupAdminProducts(rows);
+    return groupAdminProducts(await resolveProductImageUrls(ctx, rows));
   },
 });
 
@@ -122,7 +133,7 @@ export const getAdminProductGroupBySlug = query({
     assertAdminSecret(args.adminSecret);
     const rows = await ctx.db.query("products").collect();
     rows.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
-    const groups = groupAdminProducts(rows);
+    const groups = groupAdminProducts(await resolveProductImageUrls(ctx, rows));
     return groups.find((g) => g.slug === args.slug) ?? null;
   },
 });
@@ -207,6 +218,7 @@ export const createProduct = mutation({
       variantName: v.string(),
       description: v.string(),
       category: v.string(),
+      imageStorageId: v.optional(v.id("_storage")),
       imageUrl: v.optional(v.string()),
       price: v.number(),
       compareAtPrice: v.optional(v.number()),
@@ -229,12 +241,20 @@ export const createProduct = mutation({
   },
 });
 
-export const updateProductImageUrl = mutation({
+export const generateProductImageUploadUrl = mutation({
+  args: { adminSecret: v.string() },
+  handler: async (ctx, args) => {
+    assertAdminSecret(args.adminSecret);
+    return ctx.storage.generateUploadUrl();
+  },
+});
+
+export const updateProductImageStorageId = mutation({
   args: {
     adminSecret: v.string(),
     productId: v.optional(v.string()),
     parentProductId: v.optional(v.string()),
-    imageUrl: v.string(),
+    imageStorageId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
     assertAdminSecret(args.adminSecret);
@@ -242,7 +262,7 @@ export const updateProductImageUrl = mutation({
     if (args.productId) {
       const row = await getProductById(ctx, args.productId);
       if (row) {
-        await ctx.db.patch(row._id, { imageUrl: args.imageUrl, updatedAt: now });
+        await ctx.db.patch(row._id, { imageStorageId: args.imageStorageId, updatedAt: now });
       }
       return;
     }
@@ -252,7 +272,7 @@ export const updateProductImageUrl = mutation({
         .withIndex("by_parentProductId", (q) => q.eq("parentProductId", args.parentProductId!))
         .collect();
       for (const variant of variants) {
-        await ctx.db.patch(variant._id, { imageUrl: args.imageUrl, updatedAt: now });
+        await ctx.db.patch(variant._id, { imageStorageId: args.imageStorageId, updatedAt: now });
       }
     }
   },
@@ -270,6 +290,7 @@ export const createVariant = mutation({
       variantName: v.string(),
       description: v.string(),
       category: v.string(),
+      imageStorageId: v.optional(v.id("_storage")),
       imageUrl: v.optional(v.string()),
       price: v.number(),
       compareAtPrice: v.optional(v.number()),
@@ -298,7 +319,6 @@ export const updateProductGroup = mutation({
     productName: v.string(),
     description: v.string(),
     category: v.string(),
-    imageUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     assertAdminSecret(args.adminSecret);
@@ -314,7 +334,6 @@ export const updateProductGroup = mutation({
         name: `${args.productName} ${variant.variantName ?? ""}`.trim(),
         description: args.description,
         category: args.category,
-        imageUrl: args.imageUrl,
         updatedAt: now,
       });
     }
@@ -330,7 +349,6 @@ export const updateVariant = mutation({
     variantName: v.string(),
     description: v.string(),
     category: v.string(),
-    imageUrl: v.optional(v.string()),
     price: v.number(),
     compareAtPrice: v.optional(v.number()),
     inventory: v.number(),
@@ -348,7 +366,6 @@ export const updateVariant = mutation({
       variantName: args.variantName,
       description: args.description,
       category: args.category,
-      imageUrl: args.imageUrl,
       price: args.price,
       compareAtPrice: args.compareAtPrice,
       inventory: args.inventory,

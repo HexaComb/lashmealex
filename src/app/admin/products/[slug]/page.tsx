@@ -127,16 +127,6 @@ export default async function AdminProductPage({ params }: AdminProductPageProps
               />
             </label>
 
-            <label className="block space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">Default Image URL</span>
-              <input
-                type="url"
-                name="imageUrl"
-                defaultValue={product.image ?? ''}
-                className="w-full border border-foreground bg-transparent px-3 py-2.5 text-sm text-foreground outline-none focus:border-pink-dark"
-              />
-            </label>
-
             <div className="flex items-center justify-between pt-2">
               <p className="text-[10px] text-muted">/products/{product.slug}</p>
               <button type="submit" className="btn-secondary">Save Details</button>
@@ -298,7 +288,6 @@ export default async function AdminProductPage({ params }: AdminProductPageProps
                   <input type="hidden" name="parentProductId" value={product.id} />
                   <input type="hidden" name="parentSlug" value={product.slug} />
                   <input type="hidden" name="parentProductName" value={product.name} />
-                  <input type="hidden" name="imageUrl" value={variant.imageUrl ?? ''} />
                   <input type="hidden" name="description" value={variant.description ?? ''} />
                   <input type="hidden" name="category" value={variant.category} />
                   <input type="hidden" name="sortOrder" value={variant.sortOrder} />
@@ -392,8 +381,6 @@ export default async function AdminProductPage({ params }: AdminProductPageProps
                 <input type="hidden" name="parentSlug" value={product.slug} />
                 <input type="hidden" name="description" value={product.description} />
                 <input type="hidden" name="category" value={product.category} />
-                <input type="hidden" name="imageUrl" value={product.image ?? ''} />
-
                 <label className="block space-y-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">Variant Name *</span>
                   <input

@@ -2,7 +2,6 @@
 
 - `catalog.ts`, `cart.ts`, `orders.ts` — thin wrappers around Convex `fetchQuery` / `fetchMutation`
 - `convex.ts` — admin secret and timestamp helpers
-- `product-images.ts` — R2 uploads and image proxy helpers
 - `stripe.ts` — Stripe configuration
 - `admin-auth.ts` — password cookie sessions for `/admin`
 - `money.ts` — cent-to-display formatting
