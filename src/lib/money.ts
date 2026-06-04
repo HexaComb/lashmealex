@@ -1,7 +1,7 @@
 /**
  * Converts a stored cent amount into a storefront dollar number.
  *
- * @param cents The integer cent amount from D1.
+ * @param cents The stored integer cent amount.
  * @returns The amount as a two-decimal storefront number.
  */
 export function centsToDollars(cents: number): number {
@@ -11,7 +11,7 @@ export function centsToDollars(cents: number): number {
 /**
  * Formats a cent amount for owner-facing reporting surfaces.
  *
- * @param cents The integer cent amount from D1.
+ * @param cents The stored integer cent amount.
  * @returns A USD currency string.
  */
 export function formatUsdFromCents(cents: number): string {

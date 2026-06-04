@@ -1,27 +1,23 @@
 # Lashmealex
 
-Next.js storefront and owner admin, deployed on **Vercel**, with **Convex** for data and **Cloudflare R2** for product images.
+Next.js storefront and owner admin, deployed on **Vercel**, with **Convex** for data and product image storage.
 
 ## Structure
 
 - `src/` — Next.js App Router (storefront, admin, API routes)
 - `convex/` — database schema and server functions
-- `scripts/migrate-d1-to-convex.ts` — one-off D1 → Convex import
 - `seed.sql` — sample catalog for local import
 - `.env.example` — required environment variables
 
 ## Getting Started
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env.local
-# Fill in Convex URL (from `npm run convex:dev`), admin secrets, Stripe, and R2 keys
+# Fill in Convex URL (from `pnpm convex:dev`), admin secrets, and Stripe keys
 
-npm run convex:dev   # terminal 1: Convex backend
-npm run dev          # terminal 2: Next.js
-
-# Seed local Convex from seed.sql (with Convex dev running):
-npm run migrate:d1 -- --file=seed.sql --clear
+pnpm convex:dev      # terminal 1: Convex backend
+pnpm dev             # terminal 2: Next.js
 ```
 
 Open `http://localhost:3000`.
@@ -30,14 +26,14 @@ Open `http://localhost:3000`.
 
 1. Create a Convex project: `npx convex deploy` and set `NEXT_PUBLIC_CONVEX_URL` on Vercel.
 2. Set Convex env vars (`ADMIN_INTERNAL_SECRET`, etc.) to match Vercel.
-3. Connect the repo to Vercel; `npm run build` is the build command.
-4. Configure R2 S3 credentials and Stripe secrets on Vercel (see `.env.example`).
+3. Connect the repo to Vercel; `pnpm build` is the build command.
+4. Configure Stripe and admin secrets on Vercel (see `.env.example`).
 
 ## Verification
 
 ```bash
-npm run lint
-npm run typecheck
+pnpm lint
+pnpm typecheck
 ```
 
 ## Notes

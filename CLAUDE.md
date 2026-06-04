@@ -13,27 +13,26 @@ npm run typecheck           # TypeScript type-check (no emit)
 # Convex
 npm run convex:dev          # local Convex backend + codegen
 npm run convex:deploy       # deploy Convex functions/schema
-npm run migrate:d1          # import D1 SQL export / seed.sql into Convex (see scripts/)
 ```
 
 Schema source of truth is `convex/schema.ts`. Server-side data access uses `fetchQuery` / `fetchMutation` from `convex/nextjs` via thin wrappers in `src/lib/catalog.ts`, `src/lib/cart.ts`, and `src/lib/orders.ts`.
 
 ## Architecture
 
-This is a **Next.js 16 app** intended for **Vercel**, with **Convex** as the database and **Cloudflare R2** (S3-compatible API) for product images. No test suite exists; verify correctness by running `npm run typecheck` and `npm run lint`.
+This is a **Next.js 16 app** intended for **Vercel**, with **Convex** as the database and product image storage. No test suite exists; verify correctness by running `npm run typecheck` and `npm run lint`.
 
 ### Convex
 
-- Functions live in `convex/` (`products.ts`, `carts.ts`, `orders.ts`, `migrations/importD1.ts`).
-- Each row keeps a string `id` field (D1 UUID) indexed as `by_externalId` for cart IDs, slugs, and webhooks.
+- Functions live in `convex/` (`products.ts`, `carts.ts`, `orders.ts`).
+- Each row keeps a string `id` field indexed as `by_externalId` for cart IDs, slugs, and webhooks.
 - Admin mutations require `ADMIN_INTERNAL_SECRET` (set in Vercel and Convex env). Next.js passes it only from server actions after `requireAdmin()`.
 - `NEXT_PUBLIC_CONVEX_URL` must be set for `fetchQuery` / `fetchMutation`.
 
-### Product images (R2)
+### Product images
 
-- `src/lib/product-images.ts` — S3 client for R2 (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`).
-- `getProductImagePath(key)` — app-local URL `/images/...`
-- `src/app/images/[...key]/route.ts` — streams objects from R2.
+- Product rows store `imageStorageId` for Convex file storage.
+- Convex product queries derive signed image URLs with `ctx.storage.getUrl(imageStorageId)`.
+- `imageUrl` is a deprecated fallback for older rows without Convex storage.
 
 ### Data model
 
@@ -54,7 +53,7 @@ Five Convex tables, all prices in **cents**:
 
 ### Server actions
 
-- `src/app/admin/actions.ts` — admin mutations (Convex + R2 uploads)
+- `src/app/admin/actions.ts` — admin mutations and Convex storage uploads
 - `src/app/cart/actions.ts` — cart and checkout
 - `src/app/api/webhooks/stripe/route.ts` — Stripe webhook → Convex orders
 
@@ -68,12 +67,6 @@ Five Convex tables, all prices in **cents**:
 - Use `revalidatePath()` after mutations.
 - Never store prices as floats; use integer cents.
 - Normalize emails before storage and lookups.
-
-### Migrating from D1
-
-1. Export production D1: `wrangler d1 export lashmealex-d1 --remote --output=d1-export.sql` (requires Cloudflare credentials).
-2. Set `ADMIN_INTERNAL_SECRET` and `NEXT_PUBLIC_CONVEX_URL`.
-3. Run: `npm run migrate:d1 -- --file=d1-export.sql --clear`
 
 <!-- convex-ai-start -->
 

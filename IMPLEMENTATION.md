@@ -98,7 +98,7 @@ Important payment note:
 - Storefront on `Vercel`
 - Medusa backend on `Railway`, `Render`, or similar Node-friendly host
 - `PostgreSQL` on managed hosting such as Neon, Railway Postgres, or Supabase Postgres
-- Object storage for product images in production, likely `S3` or compatible storage
+- Convex file storage for product images in production
 
 ## SEO Strategy
 

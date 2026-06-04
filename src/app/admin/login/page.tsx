@@ -29,7 +29,7 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
         <h1 className="mt-6 font-display text-5xl tracking-tighter text-foreground">Admin Login</h1>
         <p className="mt-6 text-sm leading-relaxed text-muted">
           Use the owner password to manage variant inventory, feature flags, and order status from
-          this Cloudflare-hosted admin route.
+          this Vercel-hosted admin route.
         </p>
 
         {!authConfigured && (
