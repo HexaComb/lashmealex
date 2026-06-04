@@ -101,6 +101,9 @@ export default async function AdminPage() {
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-pink-dark">Catalog</p>
               <h2 className="mt-3 font-display text-4xl tracking-tighter text-foreground">Products</h2>
+              <p className="mt-2 max-w-lg text-sm text-muted">
+                Create a product here, then open it to add variants, photos, and stock.
+              </p>
             </div>
             <p className="text-xs text-muted">{productGroups.length} product{productGroups.length !== 1 ? 's' : ''}</p>
           </div>
@@ -152,7 +155,7 @@ export default async function AdminPage() {
                         href={`/admin/products/${product.slug}`}
                         className="block w-full border border-foreground px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-foreground transition-colors hover:bg-foreground hover:text-white"
                       >
-                        Manage Product
+                        Edit product
                       </Link>
                     </div>
                   </div>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Menu, X, ChevronLeft } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface AdminHeaderProps {
@@ -37,29 +37,33 @@ export default function AdminHeader({ logoutAction, productName }: AdminHeaderPr
             <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.35em] text-pink-dark">Admin</p>
           </Link>
 
-          {/* Breadcrumb or Nav Items */}
-          {productName ? (
-            <div className="hidden items-center gap-3 sm:flex">
-              <span className="text-muted">/</span>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground truncate max-w-[200px]">
-                {productName}
-              </span>
-            </div>
-          ) : (
-            <div className="hidden items-center gap-10 sm:flex">
-              {navItems.map((item) => (
+          <div className="hidden items-center gap-10 sm:flex">
+            {navItems.map((item) => {
+              const onProductPage = Boolean(productName);
+              const isProducts = item.label === 'Products';
+              const isActive = item.active || (onProductPage && isProducts);
+
+              return (
                 <Link
                   key={item.label}
                   href={item.href}
                   className={`text-[10px] font-bold uppercase tracking-[0.2em] transition-colors hover:text-foreground ${
-                    item.active ? 'text-foreground underline underline-offset-4' : 'text-muted'
+                    isActive ? 'text-foreground underline underline-offset-4' : 'text-muted'
                   }`}
                 >
                   {item.label}
                 </Link>
-              ))}
-            </div>
-          )}
+              );
+            })}
+            {productName ? (
+              <>
+                <span className="text-muted">/</span>
+                <span className="max-w-[200px] truncate text-[10px] font-bold uppercase tracking-[0.2em] text-foreground">
+                  {productName}
+                </span>
+              </>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
