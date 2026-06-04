@@ -10,11 +10,9 @@
     "lint": "eslint src convex eslint.config.mjs next.config.ts postcss.config.js tailwind.config.js",
     "typecheck": "tsc --noEmit",
     "convex:dev": "convex dev",
-    "convex:deploy": "convex deploy",
-    "migrate:d1": "tsx scripts/migrate-d1-to-convex.ts"
+    "convex:deploy": "convex deploy"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.787.0",
     "clsx": "^2.1.1",
     "convex": "^1.25.0",
     "framer-motion": "^12.38.0",

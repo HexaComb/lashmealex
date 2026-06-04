@@ -12,7 +12,6 @@ import type * as carts from "../carts.js";
 import type * as lib_admin from "../lib/admin.js";
 import type * as lib_cartUtils from "../lib/cartUtils.js";
 import type * as lib_catalogUtils from "../lib/catalogUtils.js";
-import type * as migrations_importD1 from "../migrations/importD1.js";
 import type * as orders from "../orders.js";
 import type * as products from "../products.js";
 
@@ -27,7 +26,6 @@ declare const fullApi: ApiFromModules<{
   "lib/admin": typeof lib_admin;
   "lib/cartUtils": typeof lib_cartUtils;
   "lib/catalogUtils": typeof lib_catalogUtils;
-  "migrations/importD1": typeof migrations_importD1;
   orders: typeof orders;
   products: typeof products;
 }>;

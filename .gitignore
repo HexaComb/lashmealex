@@ -5,6 +5,7 @@
 .dev.vars
 .next
 .turbo
+.tmp
 node_modules
 dist
 build
