@@ -32,6 +32,41 @@ async function resolveProductImageUrls(ctx: QueryCtx, rows: Doc<"products">[]) {
   );
 }
 
+async function resolveGalleryImageUrls(ctx: QueryCtx, parentProductIds: string[]) {
+  const galleryImagesByProductId: Record<string, string[]> = {};
+  const uniqueParentProductIds = Array.from(new Set(parentProductIds));
+
+  await Promise.all(uniqueParentProductIds.map(async (parentProductId) => {
+    const images = await ctx.db
+      .query("productImages")
+      .withIndex("by_parentProductId_and_sortOrder", (q) => q.eq("parentProductId", parentProductId))
+      .collect();
+    const urls = await Promise.all(images.map((image) => ctx.storage.getUrl(image.imageStorageId)));
+    galleryImagesByProductId[parentProductId] = urls.filter((url): url is string => Boolean(url));
+  }));
+
+  return galleryImagesByProductId;
+}
+
+async function resolveAdminGalleryImages(ctx: QueryCtx, parentProductId: string) {
+  const images = await ctx.db
+    .query("productImages")
+    .withIndex("by_parentProductId_and_sortOrder", (q) => q.eq("parentProductId", parentProductId))
+    .collect();
+
+  return Promise.all(images.map(async (image) => ({
+    id: image._id,
+    imageUrl: await ctx.storage.getUrl(image.imageStorageId),
+    sortOrder: image.sortOrder,
+  })));
+}
+
+async function groupStoreProducts(ctx: QueryCtx, rows: Doc<"products">[]) {
+  const resolvedRows = await resolveProductImageUrls(ctx, rows);
+  const galleryImages = await resolveGalleryImageUrls(ctx, resolvedRows.map((row) => row.parentProductId));
+  return groupProducts(resolvedRows, galleryImages);
+}
+
 export const listStoreProducts = query({
   args: {
     featuredOnly: v.optional(v.boolean()),
@@ -50,7 +85,7 @@ export const listStoreProducts = query({
       .filter((row) => matchesStoreQuery(row, args.query));
 
     filtered.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
-    return groupProducts(await resolveProductImageUrls(ctx, filtered));
+    return groupStoreProducts(ctx, filtered);
   },
 });
 
@@ -62,7 +97,7 @@ export const getStoreProductBySlug = query({
       .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .collect();
     rows.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
-    const products = groupProducts(await resolveProductImageUrls(ctx, rows));
+    const products = await groupStoreProducts(ctx, rows);
     return products.find((p) => p.slug === args.slug) ?? null;
   },
 });
@@ -75,8 +110,8 @@ export const getHeroProduct = query({
       .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .collect();
     rows.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
-    const products = groupProducts(await resolveProductImageUrls(ctx, rows));
-    return products.find((p) => p.isHero) ?? products.find((p) => p.isFeatured) ?? products[0] ?? null;
+    const products = await groupStoreProducts(ctx, rows);
+    return products.find((p) => p.isHero) ?? products[0] ?? null;
   },
 });
 
@@ -101,7 +136,7 @@ export const getRelatedStoreProducts = query({
       .sort((a, b) => a.sortOrder - b.sortOrder || b.inventory - a.inventory)
       .slice(0, 8);
 
-    return groupProducts(await resolveProductImageUrls(ctx, related))
+    return (await groupStoreProducts(ctx, related))
       .filter((p) => p.parentProductId !== args.excludeParentId)
       .slice(0, 4);
   },
@@ -134,7 +169,9 @@ export const getAdminProductGroupBySlug = query({
     const rows = await ctx.db.query("products").collect();
     rows.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
     const groups = groupAdminProducts(await resolveProductImageUrls(ctx, rows));
-    return groups.find((g) => g.slug === args.slug) ?? null;
+    const group = groups.find((item) => item.slug === args.slug);
+    if (!group) return null;
+    return { ...group, galleryImages: await resolveAdminGalleryImages(ctx, group.id) };
   },
 });
 
@@ -278,6 +315,45 @@ export const updateProductImageStorageId = mutation({
   },
 });
 
+export const createProductGalleryImages = mutation({
+  args: {
+    adminSecret: v.string(),
+    parentProductId: v.string(),
+    imageStorageIds: v.array(v.id("_storage")),
+  },
+  handler: async (ctx, args) => {
+    assertAdminSecret(args.adminSecret);
+    if (args.imageStorageIds.length === 0 || args.imageStorageIds.length > 12) {
+      throw new Error("Upload between 1 and 12 gallery images at a time.");
+    }
+    const existing = await ctx.db
+      .query("productImages")
+      .withIndex("by_parentProductId_and_sortOrder", (q) => q.eq("parentProductId", args.parentProductId))
+      .collect();
+    if (existing.length + args.imageStorageIds.length > 12) {
+      throw new Error("A product gallery can contain up to 12 images.");
+    }
+    const now = Date.now();
+    await Promise.all(args.imageStorageIds.map((imageStorageId, index) => ctx.db.insert("productImages", {
+      parentProductId: args.parentProductId,
+      imageStorageId,
+      sortOrder: existing.length + index,
+      createdAt: now,
+    })));
+  },
+});
+
+export const deleteProductGalleryImage = mutation({
+  args: { adminSecret: v.string(), imageId: v.id("productImages") },
+  handler: async (ctx, args) => {
+    assertAdminSecret(args.adminSecret);
+    const image = await ctx.db.get(args.imageId);
+    if (!image) return;
+    await ctx.db.delete(image._id);
+    await ctx.storage.delete(image.imageStorageId);
+  },
+});
+
 export const createVariant = mutation({
   args: {
     adminSecret: v.string(),
@@ -400,6 +476,14 @@ export const deleteProductGroup = mutation({
   args: { adminSecret: v.string(), parentProductId: v.string() },
   handler: async (ctx, args) => {
     assertAdminSecret(args.adminSecret);
+    const galleryImages = await ctx.db
+      .query("productImages")
+      .withIndex("by_parentProductId_and_sortOrder", (q) => q.eq("parentProductId", args.parentProductId))
+      .collect();
+    for (const image of galleryImages) {
+      await ctx.db.delete(image._id);
+      await ctx.storage.delete(image.imageStorageId);
+    }
     const variants = await ctx.db
       .query("products")
       .withIndex("by_parentProductId", (q) => q.eq("parentProductId", args.parentProductId))

@@ -8,6 +8,7 @@ import {
   normalizePhone,
   type CartStatus,
 } from "./lib/cartUtils";
+import type { Doc } from "./_generated/dataModel";
 
 export interface CartLine {
   id: string;
@@ -52,6 +53,14 @@ async function getCartById(ctx: QueryCtx | MutationCtx, cartId: string) {
     .first();
 }
 
+async function getProductImageUrl(ctx: QueryCtx, product: Doc<"products">) {
+  if (product.imageStorageId) {
+    const storageUrl = await ctx.storage.getUrl(product.imageStorageId);
+    if (storageUrl) return storageUrl;
+  }
+  return product.imageUrl ?? null;
+}
+
 async function buildCartWithItems(ctx: QueryCtx, cartId: string): Promise<CartWithItems | null> {
   const cartRow = await getCartById(ctx, cartId);
   if (!cartRow) return null;
@@ -76,7 +85,7 @@ async function buildCartWithItems(ctx: QueryCtx, cartId: string): Promise<CartWi
       variantName: product.variantName ?? null,
       slug: product.slug,
       price: product.price,
-      image: product.imageUrl ?? null,
+      image: await getProductImageUrl(ctx, product),
       inventory: product.inventory,
       isActive: product.isActive,
     });

@@ -67,12 +67,21 @@ export const cartItemFields = {
   updatedAt: v.number(),
 };
 
+export const productImageFields = {
+  parentProductId: v.string(),
+  imageStorageId: v.id("_storage"),
+  sortOrder: v.number(),
+  createdAt: v.number(),
+};
+
 export default defineSchema({
   products: defineTable(productFields)
     .index("by_externalId", ["id"])
     .index("by_slug", ["slug"])
     .index("by_parentProductId", ["parentProductId"])
     .index("by_isActive", ["isActive"]),
+  productImages: defineTable(productImageFields)
+    .index("by_parentProductId_and_sortOrder", ["parentProductId", "sortOrder"]),
   orders: defineTable(orderFields)
     .index("by_externalId", ["id"])
     .index("by_stripeSessionId", ["stripeSessionId"]),

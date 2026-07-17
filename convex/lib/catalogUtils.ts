@@ -75,7 +75,10 @@ function normalizeVariant(row: ProductDoc): StoreVariant {
   };
 }
 
-export function groupProducts(rows: ProductDoc[]): StoreProduct[] {
+export function groupProducts(
+  rows: ProductDoc[],
+  galleryImagesByProductId: Record<string, string[]> = {},
+): StoreProduct[] {
   const grouped = new Map<string, ProductDoc[]>();
 
   for (const row of rows) {
@@ -99,6 +102,10 @@ export function groupProducts(rows: ProductDoc[]): StoreProduct[] {
     const activeImages = sortedRows
       .map((row) => row.imageUrl)
       .filter((value): value is string => Boolean(value));
+    const images = Array.from(new Set([
+      ...(galleryImagesByProductId[primaryRow.parentProductId] ?? []),
+      ...activeImages,
+    ]));
 
     return {
       id: primaryRow.parentProductId,
@@ -112,8 +119,8 @@ export function groupProducts(rows: ProductDoc[]): StoreProduct[] {
       compareAtPrice: compareAtPrices.length > 0 ? Math.max(...compareAtPrices) : undefined,
       inventory: inventories.reduce((sum, inventory) => sum + inventory, 0),
       inStock: variants.some((variant) => variant.inStock),
-      image: activeImages[0],
-      images: activeImages.length > 0 ? Array.from(new Set(activeImages)) : [],
+      image: images[0],
+      images,
       isFeatured: sortedRows.some((row) => row.isFeatured),
       isHero: sortedRows.some((row) => row.isHero),
       sortOrder: primaryRow.sortOrder,

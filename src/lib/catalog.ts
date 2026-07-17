@@ -3,13 +3,19 @@ import "server-only";
 import { fetchQuery } from "convex/nextjs";
 
 import { api } from "../../convex/_generated/api";
-import type { Doc } from "../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { getAdminSecret } from "./convex";
 import { centsToDollars } from "./money";
 
 export type { StoreProduct, StoreVariant } from "../../convex/lib/catalogUtils";
 
 export type AdminProductVariant = Doc<"products">;
+
+export interface AdminProductGalleryImage {
+  id: Id<"productImages">;
+  imageUrl: string | null;
+  sortOrder: number;
+}
 
 export interface AdminProductGroup {
   id: string;
@@ -24,6 +30,7 @@ export interface AdminProductGroup {
   isHero: boolean;
   hasActiveVariant: boolean;
   variants: AdminProductVariant[];
+  galleryImages?: AdminProductGalleryImage[];
 }
 
 export async function listStoreProducts(options?: {

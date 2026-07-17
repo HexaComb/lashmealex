@@ -107,7 +107,6 @@ export async function createProductAction(formData: FormData) {
   const price = toCents(formData.get('price'));
   const compareAtPrice = toNullableCents(formData.get('compareAtPrice'));
   const inventory = toInventoryCount(formData.get('inventory'));
-  const isFeatured = getBooleanField(formData, 'isFeatured');
   const isActive = getBooleanField(formData, 'isActive');
 
   if (!productName || !initialVariantName) redirect('/admin');
@@ -143,7 +142,7 @@ export async function createProductAction(formData: FormData) {
       price,
       compareAtPrice: compareAtPrice ?? undefined,
       inventory,
-      isFeatured,
+      isFeatured: false,
       isActive,
       sortOrder: 0,
     },
@@ -170,7 +169,6 @@ export async function createVariantAction(formData: FormData) {
   const compareAtPrice = toNullableCents(formData.get('compareAtPrice'));
   const inventory = toInventoryCount(formData.get('inventory'));
   const sortOrderValue = String(formData.get('sortOrder') ?? '').trim();
-  const isFeatured = getBooleanField(formData, 'isFeatured');
   const isActive = getBooleanField(formData, 'isActive');
 
   if (!parentProductId || !parentProductName || !parentSlug || !variantName) return;
@@ -195,7 +193,7 @@ export async function createVariantAction(formData: FormData) {
       price,
       compareAtPrice: compareAtPrice ?? undefined,
       inventory,
-      isFeatured,
+      isFeatured: false,
       isActive,
       sortOrder: sortOrderValue ? toSortOrder(sortOrderValue) : lastSort + 1,
     },
@@ -227,6 +225,40 @@ export async function uploadProductImageAction(formData: FormData) {
     imageStorageId,
   });
 
+  revalidateCatalogPaths(parentSlug);
+  redirect(`/admin/products/${parentSlug}`);
+}
+
+export async function uploadProductGalleryImagesAction(formData: FormData) {
+  await requireAdmin();
+  const adminSecret = getAdminSecret();
+  const parentProductId = String(formData.get('parentProductId') ?? '').trim();
+  const parentSlug = String(formData.get('parentSlug') ?? '').trim();
+  const uploads = formData
+    .getAll('galleryImages')
+    .filter((entry): entry is File => entry instanceof File && entry.size > 0 && entry.type.startsWith('image/'))
+    .slice(0, 12);
+
+  if (!parentProductId || !parentSlug || uploads.length === 0) {
+    redirect(`/admin/products/${parentSlug || ''}`);
+  }
+
+  const imageStorageIds = await Promise.all(uploads.map((upload) => uploadImageFile(upload, adminSecret)));
+  await fetchMutation(api.products.createProductGalleryImages, {
+    adminSecret,
+    parentProductId,
+    imageStorageIds,
+  });
+  revalidateCatalogPaths(parentSlug);
+  redirect(`/admin/products/${parentSlug}`);
+}
+
+export async function deleteProductGalleryImageAction(formData: FormData) {
+  await requireAdmin();
+  const parentSlug = String(formData.get('parentSlug') ?? '').trim();
+  const imageId = String(formData.get('imageId') ?? '').trim() as Id<'productImages'>;
+  if (!parentSlug || !imageId) redirect('/admin');
+  await fetchMutation(api.products.deleteProductGalleryImage, { adminSecret: getAdminSecret(), imageId });
   revalidateCatalogPaths(parentSlug);
   redirect(`/admin/products/${parentSlug}`);
 }
@@ -298,7 +330,6 @@ export async function updateVariantAction(formData: FormData) {
   const inventory = toInventoryCount(formData.get('inventory'));
   const sortOrder = toSortOrder(formData.get('sortOrder'));
   const isActive = getBooleanField(formData, 'isActive');
-  const isFeatured = getBooleanField(formData, 'isFeatured');
 
   if (!productId || !parentSlug || !parentProductName || !variantName) return;
 
@@ -317,7 +348,7 @@ export async function updateVariantAction(formData: FormData) {
     inventory,
     sortOrder,
     isActive,
-    isFeatured,
+    isFeatured: false,
   });
 
   revalidateCatalogPaths(parentSlug, variantSlug, slug);

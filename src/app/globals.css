@@ -82,16 +82,18 @@ body {
 
 
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 ::selection {
@@ -119,6 +121,78 @@ textarea {
 .surface-hover {
   background: var(--surface-hover);
   border: 1px solid var(--foreground);
+}
+
+/* Compact admin actions — unlayered so color beats `a { color: inherit }` */
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  padding: 0.5rem 1rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background var(--transition-base), border-color var(--transition-base), color var(--transition-base);
+  cursor: pointer;
+}
+
+.admin-btn--primary {
+  border: 1px solid var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.admin-btn--primary:hover {
+  border-color: var(--pink-dark);
+  background: var(--pink-dark);
+  color: var(--background);
+}
+
+.admin-btn--secondary {
+  border: 1px solid var(--foreground);
+  background: #ffffff;
+  color: var(--foreground);
+}
+
+.admin-btn--secondary:hover {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.admin-btn--ghost {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+.admin-btn--ghost:hover {
+  color: var(--foreground);
+}
+
+.admin-btn--danger {
+  border: 1px solid #fecaca;
+  background: #ffffff;
+  color: #dc2626;
+}
+
+.admin-btn--danger:hover {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: var(--background);
+}
+
+.admin-btn--warning {
+  border: 1px solid #fde68a;
+  background: #ffffff;
+  color: #b45309;
+}
+
+.admin-btn--warning:hover {
+  border-color: #f59e0b;
+  background: #fffbeb;
 }
 
 .btn-primary {

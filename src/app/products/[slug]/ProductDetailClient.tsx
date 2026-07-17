@@ -110,21 +110,21 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
           {/* Product Images */}
           <FadeIn direction="left">
             <div className="space-y-4">
-              <div className="relative aspect-square overflow-hidden border border-line bg-gradient-to-br from-rose-gold-light via-background to-rose-gold">
+              <div className="relative aspect-square overflow-hidden border border-line bg-photo-well">
                 {images.length > 0 ? (
                   <motion.img
                     key={currentImageIndex}
                     src={images[currentImageIndex]}
                     alt={product.name}
                     className="w-full h-full object-cover"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <div className="text-center">
-                      <div className="w-32 h-32 bg-gradient-to-br from-pink/20 to-transparent rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <div className="flex h-32 w-32 items-center justify-center border border-line bg-background mx-auto mb-4">
                         <span className="text-3xl font-display text-foreground">
                           {product.name.split(' ').slice(0, 2).join(' ')}
                         </span>
@@ -163,9 +163,11 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
                       className={clsx(
-                        'flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors',
-                        index === currentImageIndex ? 'border-pink-dark' : 'border-transparent'
+                        'focus-ring flex-shrink-0 h-20 w-20 overflow-hidden border transition-colors',
+                        index === currentImageIndex ? 'border-foreground' : 'border-line hover:border-foreground'
                       )}
+                      aria-label={`Show image ${index + 1}`}
+                      aria-pressed={index === currentImageIndex}
                     >
                       <img
                         src={image}
@@ -271,9 +273,11 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                         <button
                           key={variant.id}
                           onClick={() => {
-                          setSelectedVariantId(variant.id);
-                          analytics.variantSelected(variant.id, variant.variantName ?? variant.name, variant.price);
-                        }}
+                            setSelectedVariantId(variant.id);
+                            const variantImageIndex = variant.image ? images.indexOf(variant.image) : -1;
+                            if (variantImageIndex >= 0) setCurrentImageIndex(variantImageIndex);
+                            analytics.variantSelected(variant.id, variant.variantName ?? variant.name, variant.price);
+                          }}
                           className={clsx(
                             'border px-4 py-3 text-left transition-colors',
                             selectedVariant?.id === variant.id
