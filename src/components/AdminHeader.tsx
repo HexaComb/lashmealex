@@ -16,38 +16,39 @@ export default function AdminHeader({ logoutAction, productName }: AdminHeaderPr
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
-    { label: 'Products', href: '/admin#products', active: pathname === '/admin' && !pathname.includes('/carts') },
-    { label: 'Orders', href: '/admin#orders', active: pathname === '/admin' && !pathname.includes('/carts') },
-    { label: 'Carts', href: '/admin/carts', active: pathname.includes('/admin/carts') },
+    { label: 'Overview', href: '/admin', active: pathname === '/admin' },
+    { label: 'Products', href: '/admin#products', active: pathname.startsWith('/admin/products') },
+    { label: 'Orders', href: '/admin#orders', active: false },
+    { label: 'Carts', href: '/admin/carts', active: pathname.startsWith('/admin/carts') },
   ];
 
   return (
     <nav className="sticky top-0 z-50 border-b border-foreground bg-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5 sm:px-12 lg:px-20">
         <div className="flex items-center gap-3 sm:gap-8">
           <button 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-1 text-muted hover:text-foreground sm:hidden"
+            className="p-1 text-muted transition-colors hover:text-foreground sm:hidden"
+            aria-label={isMenuOpen ? 'Close admin menu' : 'Open admin menu'}
+            aria-expanded={isMenuOpen}
           >
             {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
 
           <Link href="/admin" className="flex flex-col">
-            <p className="font-display text-lg leading-none tracking-tight text-foreground">Lashmealex</p>
-            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.35em] text-pink-dark">Admin</p>
+            <p className="text-sm font-semibold leading-none tracking-tight text-foreground">Lashmealex</p>
+            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.28em] text-pink-dark">Admin</p>
           </Link>
 
-          <div className="hidden items-center gap-10 sm:flex">
+          <div className="hidden items-center gap-7 sm:flex">
             {navItems.map((item) => {
-              const onProductPage = Boolean(productName);
-              const isProducts = item.label === 'Products';
-              const isActive = item.active || (onProductPage && isProducts);
+              const isActive = item.active;
 
               return (
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`text-[10px] font-bold uppercase tracking-[0.2em] transition-colors hover:text-foreground ${
+                  className={`text-[10px] font-bold uppercase tracking-[0.16em] transition-colors hover:text-foreground ${
                     isActive ? 'text-foreground underline underline-offset-4' : 'text-muted'
                   }`}
                 >
@@ -58,7 +59,7 @@ export default function AdminHeader({ logoutAction, productName }: AdminHeaderPr
             {productName ? (
               <>
                 <span className="text-muted">/</span>
-                <span className="max-w-[200px] truncate text-[10px] font-bold uppercase tracking-[0.2em] text-foreground">
+                <span className="max-w-[220px] truncate text-[10px] font-bold uppercase tracking-[0.16em] text-foreground">
                   {productName}
                 </span>
               </>
@@ -69,14 +70,14 @@ export default function AdminHeader({ logoutAction, productName }: AdminHeaderPr
         <div className="flex items-center gap-4">
           <Link 
             href="/" 
-            className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-muted transition-colors hover:text-foreground lg:block"
+            className="hidden text-[10px] font-bold uppercase tracking-[0.16em] text-muted transition-colors hover:text-foreground lg:block"
           >
-            View Storefront ↗
+            Storefront
           </Link>
           <form action={logoutAction}>
             <button 
               type="submit" 
-              className="border border-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground transition-colors hover:bg-foreground hover:text-white"
+              className="border border-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-foreground transition-colors hover:bg-foreground hover:text-[#faf9f6]"
             >
               Sign Out
             </button>
@@ -84,7 +85,6 @@ export default function AdminHeader({ logoutAction, productName }: AdminHeaderPr
         </div>
       </div>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
@@ -99,8 +99,8 @@ export default function AdminHeader({ logoutAction, productName }: AdminHeaderPr
                   key={item.label}
                   href={item.href}
                   onClick={() => setIsMenuOpen(false)}
-                  className={`px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] ${
-                    item.active ? 'bg-[#faf9f7] text-pink-dark' : 'text-muted'
+                  className={`px-6 py-4 text-[10px] font-bold uppercase tracking-[0.16em] ${
+                    item.active ? 'bg-background text-foreground' : 'text-muted'
                   }`}
                 >
                   {item.label}
@@ -108,9 +108,10 @@ export default function AdminHeader({ logoutAction, productName }: AdminHeaderPr
               ))}
               <Link
                 href="/"
-                className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted"
+                onClick={() => setIsMenuOpen(false)}
+                className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.16em] text-muted"
               >
-                View Storefront ↗
+                Storefront
               </Link>
             </div>
           </motion.div>

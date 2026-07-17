@@ -5,6 +5,17 @@ import { formatUsdFromCents } from '@/lib/money';
 import { logoutAction } from '../auth-actions';
 import { type CartStatus } from '@/lib/cart-constants';
 import AdminHeader from '@/components/AdminHeader';
+import {
+  AdminActionLink,
+  AdminEmptyState,
+  AdminPageHeader,
+  AdminPageShell,
+  AdminSection,
+  AdminStat,
+  AdminStatusBadge,
+  AdminTableWrap,
+  adminInputClass,
+} from '@/components/admin/AdminUI';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,11 +30,11 @@ function formatDate(value: Date | null) {
   }).format(value);
 }
 
-const statusStyle: Record<string, string> = {
-  active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  abandoned: 'border-amber-200 bg-amber-50 text-amber-700',
-  converted: 'border-blue-200 bg-blue-50 text-blue-700',
-};
+function cartTone(status: string) {
+  if (status === 'active') return 'success';
+  if (status === 'abandoned') return 'warning';
+  return 'info';
+}
 
 export default async function AdminCartsPage({
   searchParams,
@@ -41,118 +52,105 @@ export default async function AdminCartsPage({
   ]);
 
   return (
-    <div className="min-h-screen bg-[#faf9f7]">
+    <div className="min-h-screen bg-background">
       <AdminHeader logoutAction={logoutAction} />
 
-      <div className="mx-auto max-w-7xl space-y-14 px-6 py-10 sm:px-12 lg:px-20">
-        {/* Page Header */}
-        <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-pink-dark">Sales</p>
-            <h1 className="mt-3 font-display text-5xl tracking-tighter text-foreground">Shopping Carts</h1>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
-              Track active and abandoned customer sessions.
-            </p>
-          </div>
+      <AdminPageShell>
+        <AdminPageHeader
+          eyebrow="Carts"
+          title="Customer carts"
+          description="Track active, abandoned, and converted carts. Use search when following up with a customer."
+          actions={<AdminActionLink href="/admin">Back to overview</AdminActionLink>}
+        />
 
-          <div className="flex gap-4">
-            <div className="border border-foreground bg-white px-6 py-4">
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">Active Value</p>
-              <p className="mt-1 font-display text-2xl text-foreground">{formatUsdFromCents(stats.totalValue)}</p>
+        <section className="grid gap-3 sm:grid-cols-3">
+          <AdminStat label="Active value" value={formatUsdFromCents(stats.totalValue)} detail="current cart value" />
+          <AdminStat label="Active carts" value={stats.activeCount} detail="customers with open carts" />
+          <AdminStat label="Abandoned" value={stats.abandonedCount} detail="carts needing review" />
+        </section>
+
+        <AdminSection title="Cart list" description="Filter by status or search by customer name and email.">
+          <div className="flex flex-col gap-4 border-b border-line p-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/admin/carts"
+                className={`border px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] transition-colors ${
+                  !status ? 'border-foreground bg-foreground text-[#faf9f6]' : 'border-line bg-white text-muted hover:border-foreground hover:text-foreground'
+                }`}
+              >
+                All
+              </Link>
+              <Link
+                href="/admin/carts?status=active"
+                className={`border px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] transition-colors ${
+                  status === 'active' ? 'border-foreground bg-foreground text-[#faf9f6]' : 'border-line bg-white text-muted hover:border-foreground hover:text-foreground'
+                }`}
+              >
+                Active
+              </Link>
+              <Link
+                href="/admin/carts?status=abandoned"
+                className={`border px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] transition-colors ${
+                  status === 'abandoned' ? 'border-foreground bg-foreground text-[#faf9f6]' : 'border-line bg-white text-muted hover:border-foreground hover:text-foreground'
+                }`}
+              >
+                Abandoned
+              </Link>
             </div>
-            <div className="border border-foreground bg-white px-6 py-4">
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted">Abandoned</p>
-              <p className="mt-1 font-display text-2xl text-foreground">{stats.abandonedCount}</p>
-            </div>
-          </div>
-        </div>
 
-        {/* Filters & Search */}
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between border-b border-line pb-8">
-          <div className="flex flex-wrap gap-3">
-            <Link 
-              href="/admin/carts" 
-              className={`px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] border ${!status ? 'bg-foreground text-white border-foreground' : 'bg-white text-muted border-foreground/10 hover:border-foreground'}`}
-            >
-              All
-            </Link>
-            <Link 
-              href="/admin/carts?status=active" 
-              className={`px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] border ${status === 'active' ? 'bg-foreground text-white border-foreground' : 'bg-white text-muted border-foreground/10 hover:border-foreground'}`}
-            >
-              Active
-            </Link>
-            <Link 
-              href="/admin/carts?status=abandoned" 
-              className={`px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] border ${status === 'abandoned' ? 'bg-foreground text-white border-foreground' : 'bg-white text-muted border-foreground/10 hover:border-foreground'}`}
-            >
-              Abandoned
-            </Link>
+            <form className="w-full max-w-sm">
+              <input
+                type="text"
+                name="search"
+                defaultValue={search}
+                placeholder="Search name or email"
+                className={adminInputClass()}
+              />
+              {status ? <input type="hidden" name="status" value={status} /> : null}
+            </form>
           </div>
 
-          <form className="relative max-w-sm w-full">
-            <input
-              type="text"
-              name="search"
-              defaultValue={search}
-              placeholder="Search by name or email..."
-              className="w-full border border-foreground bg-white px-4 py-2.5 text-sm text-foreground outline-none focus:border-pink-dark"
-            />
-            {status && <input type="hidden" name="status" value={status} />}
-          </form>
-        </div>
-
-        {/* Carts List */}
-        {carts.length === 0 ? (
-          <div className="border border-dashed border-foreground bg-white px-10 py-24 text-center">
-            <p className="font-display text-2xl text-foreground">No carts found</p>
-            <p className="mt-2 text-sm text-muted">
-              Adjust your filters or wait for more customer sessions.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto border border-foreground bg-white">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-foreground bg-[#faf9f7] text-[10px] font-bold uppercase tracking-[0.3em] text-muted">
-                  <th className="px-6 py-4">Customer</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Items</th>
-                  <th className="px-6 py-4">Subtotal</th>
-                  <th className="px-6 py-4">Last Activity</th>
-                  <th className="px-6 py-4"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line text-sm text-foreground">
-                {carts.map((cart) => (
-                  <tr key={cart.id} className="hover:bg-[#faf9f7]">
-                    <td className="px-6 py-5">
-                      <p className="font-semibold">{cart.name}</p>
-                      <p className="text-xs text-muted">{cart.email}</p>
-                    </td>
-                    <td className="px-6 py-5">
-                      <span className={`border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] ${statusStyle[cart.status]}`}>
-                        {cart.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 text-muted">{cart.itemCount} items</td>
-                    <td className="px-6 py-5 font-medium">{formatUsdFromCents(cart.subtotal)}</td>
-                    <td className="px-6 py-5 text-xs text-muted">{formatDate(cart.lastActiveAt)}</td>
-                    <td className="px-6 py-5 text-right">
-                      <Link
-                        href={`/admin/carts/${cart.id}`}
-                        className="text-[10px] font-bold uppercase tracking-[0.2em] text-pink-dark hover:underline"
-                      >
-                        Details
-                      </Link>
-                    </td>
+          {carts.length === 0 ? (
+            <AdminEmptyState title="No carts found" description="Adjust the filters or search terms." />
+          ) : (
+            <AdminTableWrap minWidth="min-w-[780px]">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-foreground bg-background text-[10px] font-bold uppercase tracking-[0.24em] text-muted">
+                    <th className="px-5 py-3">Customer</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3">Items</th>
+                    <th className="px-5 py-3">Subtotal</th>
+                    <th className="px-5 py-3">Last activity</th>
+                    <th className="px-5 py-3 text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody className="divide-y divide-line text-sm text-foreground">
+                  {carts.map((cart) => (
+                    <tr key={cart.id} className="hover:bg-surface-hover">
+                      <td className="px-5 py-4">
+                        <p className="font-semibold">{cart.name}</p>
+                        <p className="text-xs text-muted">{cart.email}</p>
+                      </td>
+                      <td className="px-5 py-4">
+                        <AdminStatusBadge tone={cartTone(cart.status)}>{cart.status}</AdminStatusBadge>
+                      </td>
+                      <td className="px-5 py-4 text-muted">{cart.itemCount}</td>
+                      <td className="px-5 py-4 font-medium">{formatUsdFromCents(cart.subtotal)}</td>
+                      <td className="px-5 py-4 text-xs text-muted">{formatDate(cart.lastActiveAt)}</td>
+                      <td className="px-5 py-4 text-right">
+                        <AdminActionLink href={`/admin/carts/${cart.id}`} className="px-3 py-1.5">
+                          Open
+                        </AdminActionLink>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </AdminTableWrap>
+          )}
+        </AdminSection>
+      </AdminPageShell>
     </div>
   );
 }

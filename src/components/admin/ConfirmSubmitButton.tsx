@@ -22,7 +22,7 @@ export default function ConfirmSubmitButton({
     <button
       type="submit"
       formAction={formAction}
-      className={className}
+      className={[className, 'focus-ring'].filter(Boolean).join(' ')}
       onClick={(event) => {
         if (!window.confirm(message)) {
           event.preventDefault();

@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 import { logoutAction } from './auth-actions';
 import { createProductAction, updateOrderAction } from './actions';
 import { requireAdmin } from '@/lib/admin-auth';
@@ -8,6 +6,21 @@ import { formatUsdFromCents } from '@/lib/money';
 import { getAdminOrderStats, listAdminOrders } from '@/lib/orders';
 import { getAdminCartStats, listAdminCarts } from '@/lib/cart';
 import AdminHeader from '@/components/AdminHeader';
+import AdminFieldLabel from '@/components/admin/AdminFieldLabel';
+import {
+  AdminActionLink,
+  AdminButton,
+  AdminEmptyState,
+  AdminOperationGroup,
+  AdminPageHeader,
+  AdminPageShell,
+  AdminSection,
+  AdminStat,
+  AdminStatusBadge,
+  AdminTableWrap,
+  adminFileInputClass,
+  adminInputClass,
+} from '@/components/admin/AdminUI';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,18 +28,6 @@ function formatDate(value: Date | null) {
   if (!value) return '—';
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(value);
 }
-
-const paymentStyle: Record<string, string> = {
-  pending: 'border-amber-200 bg-amber-50 text-amber-700',
-  paid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  cancelled: 'border-red-200 bg-red-50 text-red-600',
-};
-
-const fulfillmentStyle: Record<string, string> = {
-  unfulfilled: 'border-slate-200 bg-slate-100 text-slate-500',
-  ready_for_pickup: 'border-blue-200 bg-blue-50 text-blue-700',
-  fulfilled: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-};
 
 const paymentLabel: Record<string, string> = {
   pending: 'Pending',
@@ -39,6 +40,24 @@ const fulfillmentLabel: Record<string, string> = {
   ready_for_pickup: 'Ready for Pickup',
   fulfilled: 'Fulfilled',
 };
+
+function paymentTone(status: string) {
+  if (status === 'paid') return 'success';
+  if (status === 'cancelled') return 'danger';
+  return 'warning';
+}
+
+function fulfillmentTone(status: string) {
+  if (status === 'fulfilled') return 'success';
+  if (status === 'ready_for_pickup') return 'info';
+  return 'neutral';
+}
+
+function cartTone(status: string) {
+  if (status === 'active') return 'success';
+  if (status === 'abandoned') return 'warning';
+  return 'info';
+}
 
 export default async function AdminPage() {
   await requireAdmin();
@@ -53,428 +72,314 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#faf9f7]">
+    <div className="min-h-screen bg-background">
       <AdminHeader logoutAction={logoutAction} />
 
-      <div className="mx-auto max-w-7xl space-y-14 px-6 py-10 sm:px-12 lg:px-20">
-        {/* Page Header */}
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-pink-dark">Dashboard</p>
-          <h1 className="mt-3 font-display text-5xl tracking-tighter text-foreground">Your Shop</h1>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
-            Manage your lash catalog and track orders. Any changes you make here show up on the storefront immediately.
-          </p>
-        </div>
+      <AdminPageShell>
+        <AdminPageHeader
+          eyebrow="Admin"
+          title="Operations"
+          description="Manage shop products, sales, and customer carts from one workspace."
+          actions={
+            <AdminActionLink href="#shop-products" tone="secondary">
+              Manage products
+            </AdminActionLink>
+          }
+        />
 
-        {/* Stats */}
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          <div className="border border-foreground bg-white p-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted">Products Listed</p>
-            <p className="mt-4 font-display text-4xl text-foreground">{catalogStats.activeVariants}</p>
-            <p className="mt-2 text-[10px] text-muted">active on storefront</p>
-          </div>
-          <div className="border border-foreground bg-white p-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted">Items in Stock</p>
-            <p className="mt-4 font-display text-4xl text-foreground">{catalogStats.totalInventory}</p>
-            <p className="mt-2 text-[10px] text-muted">trays available</p>
-          </div>
-          <Link href="/admin/carts" className="border border-foreground bg-white p-6 block hover:bg-[#f5f3f0] transition-colors">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted">Active Carts</p>
-            <p className="mt-4 font-display text-4xl text-foreground">{cartStats.activeCount}</p>
-            <p className="mt-2 text-[10px] text-muted">{cartStats.abandonedCount} abandoned</p>
-          </Link>
-          <div className="border border-foreground bg-white p-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted">Revenue Collected</p>
-            <p className="mt-4 font-display text-4xl text-foreground">{formatUsdFromCents(orderStats.grossSales)}</p>
-            <p className="mt-2 text-[10px] text-muted">from paid orders</p>
-          </div>
-          <div className="border border-foreground bg-white p-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted">Units Sold</p>
-            <p className="mt-4 font-display text-4xl text-foreground">{orderStats.unitsSold}</p>
-            <p className="mt-2 text-[10px] text-muted">items purchased</p>
-          </div>
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <AdminStat label="Live variants" value={catalogStats.activeVariants} detail="visible on storefront" href="#products" />
+          <AdminStat label="Stock" value={catalogStats.totalInventory} detail="units available" href="#products" />
+          <AdminStat label="Active carts" value={cartStats.activeCount} detail={`${cartStats.abandonedCount} abandoned`} href="/admin/carts" />
+          <AdminStat label="Paid revenue" value={formatUsdFromCents(orderStats.grossSales)} detail="collected orders" href="#orders" />
+          <AdminStat label="Units sold" value={orderStats.unitsSold} detail="ordered items" href="#orders" />
         </section>
 
-        {/* Products */}
-        <section id="products" className="scroll-mt-20 space-y-8">
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-pink-dark">Catalog</p>
-              <h2 className="mt-3 font-display text-4xl tracking-tighter text-foreground">Products</h2>
-              <p className="mt-2 max-w-lg text-sm text-muted">
-                Create a product here, then open it to add variants, photos, and stock.
-              </p>
-            </div>
-            <p className="text-xs text-muted">{productGroups.length} product{productGroups.length !== 1 ? 's' : ''}</p>
-          </div>
-
-          {/* Product Cards */}
-          {productGroups.length > 0 && (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {productGroups.map((product) => (
-                <div key={product.id} className="flex flex-col border border-foreground bg-white">
-                  <div className="relative aspect-square w-full overflow-hidden bg-[#f0ede8]">
-                    {product.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted opacity-30">
-                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                          <rect x="3" y="3" width="18" height="18" rx="2" />
-                          <circle cx="9" cy="9" r="2" />
-                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                        </svg>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.2em]">No image</p>
-                      </div>
-                    )}
-                    <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-                      <span className={`border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] ${product.hasActiveVariant ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white/90 text-slate-500'}`}>
-                        {product.hasActiveVariant ? 'Active' : 'Hidden'}
-                      </span>
-                      {product.isFeatured && (
-                        <span className="border border-pink-200 bg-pink-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-pink-dark">
-                          Featured
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-1 flex-col p-5">
-                    <p className="font-display text-xl leading-tight text-foreground">{product.name}</p>
-                    {product.category && (
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted">{product.category}</p>
-                    )}
-                    <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-muted">{product.description}</p>
-                    <div className="mt-4 flex items-center gap-4 border-t border-[#e8e5e0] pt-4 text-xs text-muted">
-                      <span>{product.variantCount} variant{product.variantCount !== 1 ? 's' : ''}</span>
-                      <span>·</span>
-                      <span>{product.totalInventory} in stock</span>
-                    </div>
-                    <div className="mt-4">
-                      <Link
-                        href={`/admin/products/${product.slug}`}
-                        className="block w-full border border-foreground px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-foreground transition-colors hover:bg-foreground hover:text-white"
-                      >
-                        Edit product
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Add Product Form */}
-          <div className="border border-foreground bg-white">
-            <div className="border-b border-foreground px-6 py-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-pink-dark">New Product</p>
-              <h3 className="mt-2 font-display text-2xl tracking-tighter text-foreground">Add a Product</h3>
-              <p className="mt-1.5 text-xs text-muted">
-                Fill out the details below to list a new product. You can add more variations after creating it.
-              </p>
-            </div>
-
-            <form action={createProductAction} className="p-6">
-              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {/* Basic Info */}
-                <div className="space-y-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-foreground">Basic Info</p>
-
-                  <label className="block space-y-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">Product Name *</span>
-                    <input
-                      type="text"
-                      name="productName"
-                      required
-                      placeholder="e.g. Classic Faux Mink Lashes"
-                      className="w-full border border-foreground bg-transparent px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted/40 focus:border-pink-dark"
-                    />
-                  </label>
-
-                  <label className="block space-y-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">Description</span>
-                    <textarea
-                      name="description"
-                      rows={4}
-                      placeholder="Describe this product for customers…"
-                      className="w-full resize-none border border-foreground bg-transparent px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted/40 focus:border-pink-dark"
-                    />
-                  </label>
-
-                  <label className="block space-y-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">Category</span>
-                    <input
-                      type="text"
-                      name="category"
-                      defaultValue="Lashes"
-                      className="w-full border border-foreground bg-transparent px-3 py-2.5 text-sm text-foreground outline-none focus:border-pink-dark"
-                    />
-                  </label>
-                </div>
-
-                {/* First Variation */}
-                <div className="space-y-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-foreground">First Variation</p>
-
-                  <label className="block space-y-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">Variation Name *</span>
-                    <input
-                      type="text"
-                      name="initialVariantName"
-                      required
-                      placeholder="e.g. CC Curl 0.03"
-                      className="w-full border border-foreground bg-transparent px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted/40 focus:border-pink-dark"
-                    />
-                  </label>
-
-                  <label className="block space-y-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">Price *</span>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
-                      <input
-                        type="number"
-                        name="price"
-                        min="0"
-                        step="0.01"
-                        required
-                        placeholder="0.00"
-                        className="w-full border border-foreground bg-transparent py-2.5 pl-7 pr-3 text-sm text-foreground outline-none placeholder:text-muted/40 focus:border-pink-dark"
-                      />
-                    </div>
-                  </label>
-
-                  <label className="block space-y-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">
-                      Compare-At Price{' '}
-                      <span className="font-normal normal-case tracking-normal text-muted/70">(optional, for sales)</span>
-                    </span>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
-                      <input
-                        type="number"
-                        name="compareAtPrice"
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                        className="w-full border border-foreground bg-transparent py-2.5 pl-7 pr-3 text-sm text-foreground outline-none placeholder:text-muted/40 focus:border-pink-dark"
-                      />
-                    </div>
-                  </label>
-                </div>
-
-                {/* Inventory & Visibility */}
-                <div className="space-y-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-foreground">Inventory & Visibility</p>
-
-                  <label className="block space-y-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">Starting Inventory *</span>
-                    <input
-                      type="number"
-                      name="inventory"
-                      min="0"
-                      defaultValue="0"
-                      required
-                      className="w-full border border-foreground bg-transparent px-3 py-2.5 text-sm text-foreground outline-none focus:border-pink-dark"
-                    />
-                  </label>
-
-                  <label className="block space-y-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">Product Image</span>
-                    <input
-                      type="file"
-                      name="image"
-                      accept="image/*"
-                      className="w-full border border-foreground bg-transparent px-3 py-2 text-sm text-foreground outline-none file:mr-3 file:border-0 file:bg-foreground file:px-3 file:py-1.5 file:text-[9px] file:font-bold file:uppercase file:tracking-[0.15em] file:text-background"
-                    />
-                  </label>
-
-                  <div className="space-y-3 border border-[#e5e2dd] bg-[#f5f3f0] p-4">
-                    <label className="flex cursor-pointer items-start gap-3 text-xs text-foreground">
-                      <input type="checkbox" name="isActive" defaultChecked className="mt-0.5 h-4 w-4 accent-foreground" />
-                      <span>
-                        <span className="font-semibold">Show on storefront</span>
-                        <span className="ml-1 text-muted">— customers can see and buy this</span>
-                      </span>
-                    </label>
-                    <label className="flex cursor-pointer items-start gap-3 text-xs text-foreground">
-                      <input type="checkbox" name="isFeatured" defaultChecked className="mt-0.5 h-4 w-4 accent-foreground" />
-                      <span>
-                        <span className="font-semibold">Feature on homepage</span>
-                        <span className="ml-1 text-muted">— highlights this product</span>
-                      </span>
-                    </label>
-                  </div>
-
-                  <button type="submit" className="btn-primary w-full">
-                    Create Product →
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </section>
-
-        {/* Carts */}
-        <section id="carts" className="scroll-mt-20 space-y-8">
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-pink-dark">Leads</p>
-              <h2 className="mt-3 font-display text-4xl tracking-tighter text-foreground">Shopping Carts</h2>
-            </div>
-            <Link
-              href="/admin/carts"
-              className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted hover:text-foreground transition-colors"
-            >
-              View All →
-            </Link>
-          </div>
-
-          {recentCarts.length === 0 ? (
-            <div className="border border-dashed border-foreground bg-white px-10 py-16 text-center">
-              <p className="font-display text-2xl text-foreground">No carts yet</p>
-              <p className="mt-2 text-sm text-muted">
-                Customer sessions will appear here once shoppers start building their bags.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto border border-foreground bg-white">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-foreground bg-[#faf9f7] text-[10px] font-bold uppercase tracking-[0.3em] text-muted">
-                    <th className="px-6 py-4">Customer</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4">Items</th>
-                    <th className="px-6 py-4">Subtotal</th>
-                    <th className="px-6 py-4">Last Active</th>
-                    <th className="px-6 py-4"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line text-sm text-foreground">
-                  {recentCarts.map((cart) => (
-                    <tr key={cart.id} className="hover:bg-[#faf9f7]">
-                      <td className="px-6 py-5">
-                        <p className="font-semibold">{cart.name}</p>
-                        <p className="text-xs text-muted">{cart.email}</p>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className={`border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] ${
-                          cart.status === 'active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                          : cart.status === 'abandoned' ? 'border-amber-200 bg-amber-50 text-amber-700'
-                          : 'border-blue-200 bg-blue-50 text-blue-700'
-                        }`}>
-                          {cart.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 text-muted">{cart.itemCount} items</td>
-                      <td className="px-6 py-5 font-medium">{formatUsdFromCents(cart.subtotal)}</td>
-                      <td className="px-6 py-5 text-xs text-muted">{formatDate(cart.lastActiveAt)}</td>
-                      <td className="px-6 py-5 text-right">
-                        <Link
-                          href={`/admin/carts/${cart.id}`}
-                          className="text-[10px] font-bold uppercase tracking-[0.2em] text-pink-dark hover:underline"
-                        >
-                          Details
-                        </Link>
-                      </td>
+        <AdminOperationGroup
+          id="shop-products"
+          title="Shop products"
+          description="Manage the catalog, inventory, visibility, and new products."
+          summary={`${productGroups.length} products`}
+          defaultOpen
+        >
+        <AdminSection
+          eyebrow="Products"
+          title="Catalog"
+          description="Open a product to manage variants, stock, photos, and visibility."
+          actions={<span className="text-xs text-muted">{productGroups.length} products</span>}
+          className="scroll-mt-20"
+        >
+          <div id="products" className="scroll-mt-24">
+            {productGroups.length === 0 ? (
+              <AdminEmptyState title="No products yet" description="Add the first product below. It will open into a product editor after creation." />
+            ) : (
+              <AdminTableWrap minWidth="min-w-[860px]">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-foreground bg-background text-[10px] font-bold uppercase tracking-[0.24em] text-muted">
+                      <th className="px-5 py-3">Product</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Variants</th>
+                      <th className="px-5 py-3">Stock</th>
+                      <th className="px-5 py-3">Category</th>
+                      <th className="px-5 py-3 text-right">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        {/* Orders */}
-        <section id="orders" className="scroll-mt-20 space-y-8">
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-pink-dark">Sales</p>
-              <h2 className="mt-3 font-display text-4xl tracking-tighter text-foreground">Orders</h2>
-            </div>
-            <p className="text-xs text-muted">{orders.length} order{orders.length !== 1 ? 's' : ''}</p>
+                  </thead>
+                  <tbody className="divide-y divide-line text-sm text-foreground">
+                    {productGroups.map((product) => (
+                      <tr key={product.id} className="hover:bg-surface-hover">
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-12 w-12 shrink-0 border border-line bg-photo-well">
+                              {product.image ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={product.image} alt="" className="h-full w-full object-cover" />
+                              ) : null}
+                            </div>
+                            <div>
+                              <p className="font-semibold">{product.name}</p>
+                              <p className="mt-0.5 max-w-sm truncate text-xs text-muted">{product.description || 'No description'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex flex-wrap gap-1.5">
+                            <AdminStatusBadge tone={product.hasActiveVariant ? 'success' : 'neutral'}>
+                              {product.hasActiveVariant ? 'Live' : 'Hidden'}
+                            </AdminStatusBadge>
+                            {product.isHero ? <AdminStatusBadge tone="accent">Hero</AdminStatusBadge> : null}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-muted">{product.variantCount}</td>
+                        <td className="px-5 py-4 font-medium">{product.totalInventory}</td>
+                        <td className="px-5 py-4 text-muted">{product.category || 'Uncategorized'}</td>
+                        <td className="px-5 py-4 text-right">
+                          <AdminActionLink href={`/admin/products/${product.slug}`} className="px-3 py-1.5">
+                            Edit
+                          </AdminActionLink>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </AdminTableWrap>
+            )}
           </div>
+        </AdminSection>
 
-          {orders.length === 0 ? (
-            <div className="border border-dashed border-foreground bg-white px-10 py-16 text-center">
-              <p className="font-display text-2xl text-foreground">No orders yet</p>
-              <p className="mt-2 text-sm text-muted">
-                Once customers start purchasing, their orders will appear here.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {orders.map((order) => (
-                <form
-                  key={order.id}
-                  action={updateOrderAction}
-                  className="border border-foreground bg-white"
-                >
-                  <input type="hidden" name="orderId" value={order.id} />
+        <AdminSection
+          eyebrow="Add product"
+          title="New product"
+          description="Start with one sellable variant. More variants can be added on the product page."
+        >
+          <form action={createProductAction} className="space-y-6 p-5 sm:p-6">
+            <section aria-labelledby="product-details-heading">
+              <h3 id="product-details-heading" className="mb-4 text-sm font-semibold text-foreground">Product details</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block space-y-1.5">
+                  <AdminFieldLabel hint="Required">Product name</AdminFieldLabel>
+                  <input
+                    type="text"
+                    name="productName"
+                    required
+                    placeholder="Classic Faux Mink Lashes"
+                    className={adminInputClass()}
+                  />
+                </label>
 
-                  <div className="grid gap-4 p-5 sm:grid-cols-[1fr_160px_160px_auto] sm:items-center">
-                    {/* Customer */}
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        {order.customerName ?? order.customerEmail}
-                      </p>
-                      {order.customerName && (
-                        <p className="mt-0.5 text-[11px] text-muted">{order.customerEmail}</p>
-                      )}
-                      <p className="mt-2 text-xs text-muted">{formatDate(order.createdAt)}</p>
-                      <p className="mt-1 font-display text-lg text-foreground">{formatUsdFromCents(order.total)}</p>
-                      <div className="mt-2.5 flex flex-wrap gap-1.5">
-                        <span className={`border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] ${paymentStyle[order.status] ?? 'border-gray-200 bg-gray-100 text-gray-600'}`}>
-                          {paymentLabel[order.status] ?? order.status}
-                        </span>
-                        <span className={`border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] ${fulfillmentStyle[order.fulfillmentStatus] ?? 'border-gray-200 bg-gray-100 text-gray-600'}`}>
-                          {fulfillmentLabel[order.fulfillmentStatus] ?? order.fulfillmentStatus}
-                        </span>
-                      </div>
-                    </div>
+                <label className="block space-y-1.5">
+                  <AdminFieldLabel hint="Optional">Category</AdminFieldLabel>
+                  <input type="text" name="category" defaultValue="Lashes" className={adminInputClass()} />
+                </label>
 
-                    {/* Payment */}
-                    <label className="space-y-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">Payment</span>
-                      <select
-                        name="status"
-                        defaultValue={order.status}
-                        className="w-full border border-foreground bg-transparent px-3 py-2 text-sm text-foreground outline-none"
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="paid">Paid</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                    </label>
+                <label className="block space-y-1.5 sm:col-span-2">
+                  <AdminFieldLabel>Description</AdminFieldLabel>
+                  <textarea
+                    name="description"
+                    rows={4}
+                    placeholder="Materials, curl options, or who this is best for."
+                    className={adminInputClass('resize-y')}
+                  />
+                </label>
 
-                    {/* Fulfillment */}
-                    <label className="space-y-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">Fulfillment</span>
-                      <select
-                        name="fulfillmentStatus"
-                        defaultValue={order.fulfillmentStatus}
-                        className="w-full border border-foreground bg-transparent px-3 py-2 text-sm text-foreground outline-none"
-                      >
-                        <option value="unfulfilled">Unfulfilled</option>
-                        <option value="ready_for_pickup">Ready for Pickup</option>
-                        <option value="fulfilled">Fulfilled</option>
-                      </select>
-                    </label>
+                <label className="block space-y-1.5 sm:col-span-2">
+                  <AdminFieldLabel>Product image</AdminFieldLabel>
+                  <input type="file" name="image" accept="image/*" className={adminFileInputClass()} />
+                </label>
+              </div>
+            </section>
 
-                    <div className="flex sm:justify-end">
-                      <button
-                        type="submit"
-                        className="border border-foreground px-5 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground transition-colors hover:bg-foreground hover:text-white"
-                      >
-                        Save
-                      </button>
-                    </div>
+            <section aria-labelledby="first-variant-heading" className="border-t border-line pt-6">
+              <h3 id="first-variant-heading" className="mb-4 text-sm font-semibold text-foreground">First variant</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block space-y-1.5">
+                  <AdminFieldLabel hint="Required">Variant name</AdminFieldLabel>
+                  <input
+                    type="text"
+                    name="initialVariantName"
+                    required
+                    placeholder="CC Curl 0.03"
+                    className={adminInputClass()}
+                  />
+                </label>
+
+                <label className="block space-y-1.5">
+                  <AdminFieldLabel hint="Required">Starting stock</AdminFieldLabel>
+                  <input type="number" name="inventory" min="0" defaultValue="0" required className={adminInputClass()} />
+                </label>
+
+                <label className="block space-y-1.5">
+                  <AdminFieldLabel hint="Required">Price</AdminFieldLabel>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+                    <input type="number" name="price" min="0" step="0.01" required placeholder="0.00" className={adminInputClass('pl-7')} />
                   </div>
-                </form>
-              ))}
+                </label>
+
+                <label className="block space-y-1.5">
+                  <AdminFieldLabel hint="Optional">Compare price</AdminFieldLabel>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+                    <input type="number" name="compareAtPrice" min="0" step="0.01" placeholder="0.00" className={adminInputClass('pl-7')} />
+                  </div>
+                </label>
+              </div>
+            </section>
+
+            <div className="flex flex-col gap-4 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <label className="flex cursor-pointer items-start gap-3 text-xs text-foreground">
+                <input type="checkbox" name="isActive" defaultChecked className="mt-0.5 h-4 w-4 accent-foreground" />
+                <span>
+                  <span className="font-semibold">Active</span>
+                  <span className="block text-muted">Customers can see and buy it.</span>
+                </span>
+              </label>
+
+              <AdminButton type="submit" tone="primary" className="w-full sm:w-auto sm:min-w-48">
+                Create product
+              </AdminButton>
             </div>
-          )}
-        </section>
-      </div>
+          </form>
+        </AdminSection>
+
+        </AdminOperationGroup>
+
+        <AdminOperationGroup
+          id="sales"
+          title="Sales"
+          description="Review orders, payment state, and fulfillment progress."
+          summary={`${orders.length} orders`}
+        >
+          <AdminSection
+            eyebrow="Orders"
+            title="Orders"
+            description="Update payment and fulfillment status."
+            actions={<span className="text-xs text-muted">{orders.length} orders</span>}
+            className="scroll-mt-20"
+          >
+            <div id="orders" className="scroll-mt-24">
+              {orders.length === 0 ? (
+                <AdminEmptyState title="No orders yet" description="Orders will appear after checkout." />
+              ) : (
+                <div className="divide-y divide-line">
+                  {orders.map((order) => (
+                    <form key={order.id} action={updateOrderAction} className="grid gap-4 p-5 lg:grid-cols-[minmax(0,1fr)_150px_170px_auto] lg:items-end">
+                      <input type="hidden" name="orderId" value={order.id} />
+
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{order.customerName ?? order.customerEmail}</p>
+                        {order.customerName ? <p className="mt-0.5 text-[11px] text-muted">{order.customerEmail}</p> : null}
+                        <p className="mt-2 text-xs text-muted">{formatDate(order.createdAt)}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold">{formatUsdFromCents(order.total)}</p>
+                          <AdminStatusBadge tone={paymentTone(order.status)}>{paymentLabel[order.status] ?? order.status}</AdminStatusBadge>
+                          <AdminStatusBadge tone={fulfillmentTone(order.fulfillmentStatus)}>
+                            {fulfillmentLabel[order.fulfillmentStatus] ?? order.fulfillmentStatus}
+                          </AdminStatusBadge>
+                        </div>
+                      </div>
+
+                      <label className="space-y-1.5">
+                        <AdminFieldLabel>Payment</AdminFieldLabel>
+                        <select name="status" defaultValue={order.status} className={adminInputClass()}>
+                          <option value="pending">Pending</option>
+                          <option value="paid">Paid</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </label>
+
+                      <label className="space-y-1.5">
+                        <AdminFieldLabel>Fulfillment</AdminFieldLabel>
+                        <select name="fulfillmentStatus" defaultValue={order.fulfillmentStatus} className={adminInputClass()}>
+                          <option value="unfulfilled">Unfulfilled</option>
+                          <option value="ready_for_pickup">Ready for Pickup</option>
+                          <option value="fulfilled">Fulfilled</option>
+                        </select>
+                      </label>
+
+                      <AdminButton type="submit">Save</AdminButton>
+                    </form>
+                  ))}
+                </div>
+              )}
+            </div>
+          </AdminSection>
+
+        </AdminOperationGroup>
+
+        <AdminOperationGroup
+          id="customer-carts"
+          title="Carts"
+          description="Review active and abandoned customer carts."
+          summary={`${cartStats.activeCount} active`}
+        >
+          <AdminSection
+            eyebrow="Carts"
+            title="Recent carts"
+            description="Active and abandoned customer carts."
+            actions={<AdminActionLink href="/admin/carts">All carts</AdminActionLink>}
+            className="scroll-mt-20"
+          >
+            {recentCarts.length === 0 ? (
+              <AdminEmptyState title="No carts yet" description="Customer carts will appear once shoppers add products." />
+            ) : (
+              <AdminTableWrap minWidth="min-w-[720px]">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-foreground bg-background text-[10px] font-bold uppercase tracking-[0.24em] text-muted">
+                      <th className="px-5 py-3">Customer</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Items</th>
+                      <th className="px-5 py-3">Subtotal</th>
+                      <th className="px-5 py-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line text-sm text-foreground">
+                    {recentCarts.slice(0, 6).map((cart) => (
+                      <tr key={cart.id} className="hover:bg-surface-hover">
+                        <td className="px-5 py-4">
+                          <p className="font-semibold">{cart.name}</p>
+                          <p className="text-xs text-muted">{cart.email}</p>
+                        </td>
+                        <td className="px-5 py-4">
+                          <AdminStatusBadge tone={cartTone(cart.status)}>{cart.status}</AdminStatusBadge>
+                        </td>
+                        <td className="px-5 py-4 text-muted">{cart.itemCount}</td>
+                        <td className="px-5 py-4 font-medium">{formatUsdFromCents(cart.subtotal)}</td>
+                        <td className="px-5 py-4 text-right">
+                          <AdminActionLink href={`/admin/carts/${cart.id}`} className="px-3 py-1.5">
+                            Open
+                          </AdminActionLink>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </AdminTableWrap>
+            )}
+          </AdminSection>
+        </AdminOperationGroup>
+      </AdminPageShell>
     </div>
   );
 }
