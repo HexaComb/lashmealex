@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint src convex eslint.config.mjs next.config.ts postcss.config.js tailwind.config.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "rm -rf .next/types .next/dev/types && next typegen && tsc --noEmit",
     "test": "vitest run",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy"
