@@ -10,6 +10,7 @@ import {
 } from 'react';
 
 const CONSENT_KEY = 'lashmealex_cookie_consent';
+const ANALYTICS_CONSENT_KEY = 'lashmealex_analytics_consent';
 
 type ConsentStatus = 'pending' | 'accepted' | 'declined';
 
@@ -26,18 +27,25 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem(CONSENT_KEY);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (saved === 'accepted') setStatus('accepted');
-    else if (saved === 'declined') setStatus('declined');
+    const storedStatus = saved === 'accepted' || saved === 'declined' ? saved : null;
+    if (!storedStatus) return;
+
+    const timer = window.setTimeout(() => {
+      localStorage.setItem(ANALYTICS_CONSENT_KEY, storedStatus === 'accepted' ? 'granted' : 'denied');
+      setStatus(storedStatus);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const accept = useCallback(() => {
     localStorage.setItem(CONSENT_KEY, 'accepted');
+    localStorage.setItem(ANALYTICS_CONSENT_KEY, 'granted');
     setStatus('accepted');
   }, []);
 
   const decline = useCallback(() => {
     localStorage.setItem(CONSENT_KEY, 'declined');
+    localStorage.setItem(ANALYTICS_CONSENT_KEY, 'denied');
     setStatus('declined');
   }, []);
 

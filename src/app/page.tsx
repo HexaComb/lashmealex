@@ -253,7 +253,7 @@ export default async function Home() {
       </main>
 
       <footer className="border-t border-foreground bg-[#faf7f5] px-6 py-16 sm:px-12 lg:px-20">
-        <div className="grid gap-16 lg:grid-cols-4">
+        <div className="grid gap-12 lg:grid-cols-5">
           <div className="lg:col-span-1">
             <p className="font-display text-3xl tracking-tighter text-foreground">lashmealex</p>
             <p className="mt-4 text-sm leading-relaxed text-muted">
@@ -312,6 +312,15 @@ export default async function Home() {
               >
                 GlossGenius
               </a>
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-foreground">Policies</p>
+            <div className="mt-6 space-y-4">
+              <Link href="/policies#privacy" className="block text-sm text-muted transition-colors hover:text-foreground">Privacy</Link>
+              <Link href="/policies#terms" className="block text-sm text-muted transition-colors hover:text-foreground">Terms</Link>
+              <Link href="/policies#returns" className="block text-sm text-muted transition-colors hover:text-foreground">Returns &amp; Refunds</Link>
+              <Link href="/policies#cancellation" className="block text-sm text-muted transition-colors hover:text-foreground">Cancellation</Link>
             </div>
           </div>
         </div>

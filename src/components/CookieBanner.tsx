@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
+import Link from 'next/link';
 import { useConsent } from '@/context/ConsentContext';
 
 export default function CookieBanner() {
@@ -24,6 +25,7 @@ export default function CookieBanner() {
           <p className="text-xs leading-relaxed text-muted mb-5">
             We use privacy-conscious analytics to understand how visitors use our site.
             No cross-site tracking or advertising cookies are used.
+            {' '}<Link href="/policies#privacy" className="font-semibold text-foreground underline underline-offset-2">Learn more</Link>.
           </p>
           <div className="flex gap-3">
             <button
