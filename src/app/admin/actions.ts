@@ -111,6 +111,7 @@ export async function createProductAction(formData: FormData) {
   const compareAtPrice = toNullableCents(formData.get('compareAtPrice'));
   const inventory = toInventoryCount(formData.get('inventory'));
   const isActive = getBooleanField(formData, 'isActive');
+  const isFeatured = getBooleanField(formData, 'isFeatured');
 
   if (!productName || !initialVariantName) redirect('/admin');
 
@@ -145,7 +146,7 @@ export async function createProductAction(formData: FormData) {
       price,
       compareAtPrice: compareAtPrice ?? undefined,
       inventory,
-      isFeatured: false,
+      isFeatured,
       isActive,
       sortOrder: 0,
     },
@@ -173,6 +174,7 @@ export async function createVariantAction(formData: FormData) {
   const inventory = toInventoryCount(formData.get('inventory'));
   const sortOrderValue = String(formData.get('sortOrder') ?? '').trim();
   const isActive = getBooleanField(formData, 'isActive');
+  const isFeatured = getBooleanField(formData, 'isFeatured');
 
   if (!parentProductId || !parentProductName || !parentSlug || !variantName) return;
 
@@ -196,7 +198,7 @@ export async function createVariantAction(formData: FormData) {
       price,
       compareAtPrice: compareAtPrice ?? undefined,
       inventory,
-      isFeatured: false,
+      isFeatured,
       isActive,
       sortOrder: sortOrderValue ? toSortOrder(sortOrderValue) : lastSort + 1,
     },
@@ -333,6 +335,7 @@ export async function updateVariantAction(formData: FormData) {
   const inventory = toInventoryCount(formData.get('inventory'));
   const sortOrder = toSortOrder(formData.get('sortOrder'));
   const isActive = getBooleanField(formData, 'isActive');
+  const isFeatured = getBooleanField(formData, 'isFeatured');
 
   if (!productId || !parentSlug || !parentProductName || !variantName) return;
 
@@ -351,7 +354,7 @@ export async function updateVariantAction(formData: FormData) {
     inventory,
     sortOrder,
     isActive,
-    isFeatured: false,
+    isFeatured,
   });
 
   revalidateCatalogPaths(parentSlug, variantSlug, slug);

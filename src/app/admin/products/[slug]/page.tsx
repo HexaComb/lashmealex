@@ -220,7 +220,7 @@ export default async function AdminProductPage({ params }: AdminProductPageProps
                           <label className="block space-y-1.5"><AdminFieldLabel>Compare-at price</AdminFieldLabel><input type="number" name="compareAtPrice" step="0.01" min="0" defaultValue={formatCents(variant.compareAtPrice)} className={adminSmallInputClass()} /></label>
                         </div>
                         <details className="border-t border-line pt-3"><summary className="cursor-pointer text-xs font-semibold text-foreground">More settings</summary><label className="mt-3 block max-w-40 space-y-1.5"><AdminFieldLabel>Display order</AdminFieldLabel><input type="number" name="sortOrder" defaultValue={variant.sortOrder} className={adminSmallInputClass()} /></label></details>
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4"><label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-foreground"><input type="checkbox" name="isActive" defaultChecked={variant.isActive} className="h-4 w-4 accent-foreground" />Active</label><AdminButton type="submit" tone="primary">Save option</AdminButton></div>
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4"><div className="flex flex-wrap gap-5"><label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-foreground"><input type="checkbox" name="isActive" defaultChecked={variant.isActive} className="h-4 w-4 accent-foreground" />Active</label><label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-foreground"><input type="checkbox" name="isFeatured" defaultChecked={variant.isFeatured} className="h-4 w-4 accent-foreground" />Featured</label></div><AdminButton type="submit" tone="primary">Save option</AdminButton></div>
                       </form>
                       <form
                         action={uploadVariantImageAction}
@@ -299,6 +299,10 @@ export default async function AdminProductPage({ params }: AdminProductPageProps
               <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-foreground">
                 <input type="checkbox" name="isActive" defaultChecked className="h-4 w-4 accent-foreground" />
                 Active
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-foreground">
+                <input type="checkbox" name="isFeatured" className="h-4 w-4 accent-foreground" />
+                Featured
               </label>
             </div>
 
