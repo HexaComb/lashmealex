@@ -42,6 +42,10 @@ async function requireCartCapability(cartId: string): Promise<string | null> {
   return cookieCartId === cartId && token ? token : null;
 }
 
+export async function clearCartCapabilityAction() {
+  (await cookies()).delete("lashmealex_cart_access");
+}
+
 export async function startCartAction(formData: FormData): Promise<StartCartResult> {
   const email = String(formData.get("email") ?? "");
   const phone = String(formData.get("phone") ?? "");

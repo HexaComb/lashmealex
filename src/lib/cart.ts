@@ -60,7 +60,7 @@ export async function getCartWithItemsForAdmin(cartId: string): Promise<CartWith
 }
 
 export async function findCartByEmail(email: string) {
-  const row = await fetchQuery(api.carts.findCartByEmail, { email });
+  const row = await fetchQuery(api.carts.findCartByEmail, { email, adminSecret: getAdminSecret() });
   if (!row) return null;
   return {
     ...row,
@@ -118,7 +118,7 @@ export async function adminClearCart(cartId: string) {
 }
 
 export async function updateCartStatus(cartId: string, status: CartStatus) {
-  await fetchMutation(api.carts.updateCartStatus, { cartId, status });
+  await fetchMutation(api.carts.updateCartStatus, { cartId, status, adminSecret: getAdminSecret() });
 }
 
 export async function updateCartNotes(cartId: string, notes: string) {

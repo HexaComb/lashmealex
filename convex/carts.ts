@@ -133,8 +133,9 @@ export const getCartWithItemsForAdmin = query({
 });
 
 export const findCartByEmail = query({
-  args: { email: v.string() },
+  args: { email: v.string(), adminSecret: v.string() },
   handler: async (ctx, args) => {
+    assertAdminSecret(args.adminSecret);
     const normalized = normalizeEmail(args.email);
     return ctx.db
       .query("carts")
@@ -352,9 +353,9 @@ export const replaceCartItems = mutation({
 });
 
 export const deleteCart = mutation({
-  args: { cartId: v.string(), adminSecret: v.optional(v.string()) },
+  args: { cartId: v.string(), adminSecret: v.string() },
   handler: async (ctx, args) => {
-    if (args.adminSecret) assertAdminSecret(args.adminSecret);
+    assertAdminSecret(args.adminSecret);
     const items = await ctx.db
       .query("cartItems")
       .withIndex("by_cartId", (q) => q.eq("cartId", args.cartId))
@@ -366,9 +367,9 @@ export const deleteCart = mutation({
 });
 
 export const updateCartStatus = mutation({
-  args: { cartId: v.string(), status: v.string(), adminSecret: v.optional(v.string()) },
+  args: { cartId: v.string(), status: v.string(), adminSecret: v.string() },
   handler: async (ctx, args) => {
-    if (args.adminSecret) assertAdminSecret(args.adminSecret);
+    assertAdminSecret(args.adminSecret);
     if (!isValidCartStatus(args.status)) {
       throw new Error(`Invalid cart status: ${args.status}`);
     }
