@@ -280,10 +280,10 @@ export default async function Home() {
               >
                 Book Appointment
               </a>
-              <Link href="/shop" className="block text-sm text-muted transition-colors hover:text-foreground">
+              <Link href="/shipping-pickup" className="block text-sm text-muted transition-colors hover:text-foreground">
                 Shipping & Pickup
               </Link>
-              <Link href="/shop" className="block text-sm text-muted transition-colors hover:text-foreground">
+              <Link href="/contact" className="block text-sm text-muted transition-colors hover:text-foreground">
                 Contact
               </Link>
             </div>
