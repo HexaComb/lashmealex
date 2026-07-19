@@ -249,13 +249,22 @@ export default async function AdminPage() {
             </section>
 
             <div className="flex flex-col gap-4 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
-              <label className="flex cursor-pointer items-start gap-3 text-xs text-foreground">
-                <input type="checkbox" name="isActive" defaultChecked className="mt-0.5 h-4 w-4 accent-foreground" />
-                <span>
-                  <span className="font-semibold">Active</span>
-                  <span className="block text-muted">Customers can see and buy it.</span>
-                </span>
-              </label>
+              <div className="flex flex-wrap gap-5">
+                <label className="flex cursor-pointer items-start gap-3 text-xs text-foreground">
+                  <input type="checkbox" name="isActive" defaultChecked className="mt-0.5 h-4 w-4 accent-foreground" />
+                  <span>
+                    <span className="font-semibold">Active</span>
+                    <span className="block text-muted">Customers can see and buy it.</span>
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3 text-xs text-foreground">
+                  <input type="checkbox" name="isFeatured" className="mt-0.5 h-4 w-4 accent-foreground" />
+                  <span>
+                    <span className="font-semibold">Featured</span>
+                    <span className="block text-muted">Prioritize it in storefront collections.</span>
+                  </span>
+                </label>
+              </div>
 
               <AdminButton type="submit" tone="primary" className="w-full sm:w-auto sm:min-w-48">
                 Create product
