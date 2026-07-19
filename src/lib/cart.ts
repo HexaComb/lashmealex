@@ -74,6 +74,17 @@ export async function createCart(input: { email: string; phone: string; name: st
   return fetchMutation(api.carts.createCart, input);
 }
 
+export async function startOverCart(input: {
+  cartId: string;
+  accessToken: string;
+  newAccessToken: string;
+  email: string;
+  phone: string;
+  name: string;
+}) {
+  return fetchMutation(api.carts.startOverCart, input);
+}
+
 export async function upsertCartItem(cartId: string, productId: string, quantity: number, accessToken: string) {
   await fetchMutation(api.carts.upsertCartItem, { cartId, productId, quantity, accessToken });
 }
