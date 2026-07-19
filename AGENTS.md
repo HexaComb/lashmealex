@@ -1,60 +1,98 @@
-# 🤖 AI Agent Guidelines & Software Engineering Best Practices
+# Agent Guide
 
-This document serves as the single source of truth for code standards, architectural decisions, and interaction protocols for all engineers and AI tooling working on this project. Adherence to these guidelines ensures maintainability, predictability, and collaboration efficiency.
+This file defines how people and AI agents should work in this repository. Follow the rules that are relevant to the task; repository-specific instructions override general habits.
 
-## ⚙️ I. Development Workflow & Tooling (For All Engineers)
+## Project at a glance
 
-These rules govern *how* work gets done and committed.
+Lashmealex is a Next.js 16 e-commerce storefront and owner admin deployed on Vercel.
 
-### A. Commit Hygiene (Atomic Commits)
-*   **Atomicity is King:** Every commit must represent one logical, isolated change (e.g., "Fix X bug," "Implement Y feature," "Refactor Z class"). Never mix unrelated changes.
-*   **Commit Message Format:** Use a structured, descriptive message following the [Conventional Commits](https://www.conventionalcommits.org/) standard (e.g., `feat: add user authentication endpoint` or `fix(api): resolve null pointer in service layer`).
-*   **Commit Frequency:** Commit small, tested changes frequently.
+- `src/app/` — App Router pages, server actions, and API routes
+- `src/components/` — shared React UI
+- `src/context/` — client-side providers
+- `src/lib/` — server utilities and Convex-backed application logic
+- `convex/` — Convex schema, queries, mutations, actions, and shared utilities
+- `public/` — static assets
 
-### B. Code Structure & Isolation
-*   **Separation of Concerns:** Keep backend logic, frontend UI components, and configuration files strictly separated.
-*   **Scaffolding:** When adding major features, follow a phased approach:
-    1.  Commit 1: Scaffolding/API Contracts (e.g., defining interfaces or mock endpoints).
-    2.  Commit 2: Core Business Logic/Backend Implementation.
-    3.  Commit 3: Storefront/UI Integration & Testing.
-    4.  Commit 4: Cleanup and Refactoring.
+The application uses Convex for application data and product-image storage, Stripe for checkout, and Resend for transactional email.
 
-## ✨ II. Code Quality & Style Guide (For All Engineers)
+## Work tracking and branches
 
-*   **Readability Over Cleverness:** Code should be immediately understandable by a developer unfamiliar with the module. Prefer explicit over implicit.
-*   **Documentation:**
-    *   **Public APIs/Functions:** Must include a docstring detailing **What** it does, **Why** it exists (context), **Parameters** (`@param`), **Returns** (`@return`), and **Raises** (`@throws`).
-    *   **READMEs:** Every directory containing core logic must have a `README.md` explaining its purpose and how to run tests/examples.
-*   **Testing:** No code can be merged without corresponding unit/integration tests that achieve >80% coverage.
+Every implementation task must be tied to a ClickUp ticket.
 
-## 🧠 III. AI Agent Interaction Protocols (For LLMs & Agents)
+1. Search ClickUp for a ticket that matches the requested work before starting.
+2. If a matching ticket exists, update it with the clarified scope and relevant progress.
+3. If no matching ticket is found, create one before beginning implementation.
+4. Use one dedicated branch per ClickUp ticket. Name it with the repository's `codex/` prefix and include the ticket identifier when available.
+5. When the requested work moves to another ClickUp ticket, tell the user that the work should continue on that ticket's branch before making changes.
 
-This section dictates how AI agents should operate to maintain code integrity.
+Do not combine unrelated tickets in one branch, commit, or pull request.
 
-### A. Mandate of Confirmation
-*   **No Blind Edits:** An AI agent must **never** unilaterally modify source code. All proposed changes must be presented to a human reviewer first.
-*   **Change Preview:** When proposing edits, the agent *must* use `view_diff` or provide a clear, inline patch format showing only the additions/removals.
+## Before making changes
 
-### B. Task Decomposition
-*   **Plan First:** For complex tasks, the agent must generate an explicit, step-by-step execution plan and await confirmation before writing any code or running any commands.
-*   **Tool Usage Documentation:** If the agent needs to use a specific tool (e.g., `read_file`, `grep_search`), it must state *why* that tool is necessary for the current step.
+- Inspect the relevant code, documentation, and local conventions first.
+- Check `git status` before editing. Treat existing uncommitted work as user-owned unless it is clearly part of the current ticket.
+- For a complex, ambiguous, risky, or cross-cutting task, present a short implementation plan and obtain approval before changing code.
+- For any code or configuration change, show a focused proposed patch or diff and obtain approval before applying it.
+- Do not invent requirements. Ask a focused question when the answer cannot be safely inferred from the ticket or repository.
+- Never expose, copy, log, or commit secrets from `.env*`, deployment settings, or third-party credentials.
 
-### C. Handling Ambiguity
-*   If the context is insufficient to complete a task safely, the agent must halt execution and ask a clarifying question, citing the ambiguity. **Guessing is prohibited.**
+## Implementation standards
 
-### D. Deployment Restrictions
-*   **Never Deploy:** An AI agent must **never** deploy the application or infrastructure on behalf of the user. All deployments must be explicitly initiated and handled by the user.
+- Use TypeScript and keep code explicit, small, and readable.
+- Keep concerns separated: UI in components/routes, business logic in `src/lib/`, and persistence/business operations in `convex/`.
+- Prefer existing utilities and patterns over introducing a parallel abstraction.
+- Do not store monetary values as floats. Prices are integer cents.
+- Normalize customer emails before storage and lookup.
+- Preserve the variant-level product model: each `products` row represents a sellable variant.
+- Use `revalidatePath()` after mutations when cached Next.js routes need refreshing.
+- Keep changes narrowly scoped to the ticket. Do not refactor unrelated code without documenting the reason and obtaining approval.
+- Add or update documentation when behavior, setup, configuration, or public developer-facing APIs change.
 
-<!-- convex-ai-start -->
+## Next.js and UI
 
-This project uses [Convex](https://convex.dev) as its backend.
+- Use the App Router conventions already established in `src/app/`.
+- Keep server-only logic, secrets, and privileged operations out of client components.
+- Preserve metadata and structured data when changing storefront routes; SEO is a product requirement.
+- Keep the existing visual system and Tailwind conventions consistent. Do not introduce a new styling framework without approval.
+- Maintain accessible semantics, keyboard interaction, and useful loading/error states for user-facing changes.
 
-When working on Convex code, **always read
-`convex/_generated/ai/guidelines.md` first** for important guidelines on
-how to correctly use Convex APIs and patterns. The file contains rules that
-override what you may have learned about Convex from training data.
+## Convex
 
-Convex agent skills for common tasks can be installed by running
-`npx convex ai-files install`.
+Before editing any file in `convex/`, read `convex/_generated/ai/guidelines.md`. Its rules override other Convex guidance.
 
-<!-- convex-ai-end -->
+- Treat `convex/schema.ts` as the data-model source of truth.
+- Keep generated files in `convex/_generated/` machine-managed; do not edit them manually.
+- Use Convex for products, carts, orders, and product-image storage.
+- Keep admin mutations protected. Secrets must only be used from server-side code after authorization is verified.
+- Preserve the existing external-ID indexes and webhook idempotency behavior unless the ticket explicitly changes them.
+- Treat `imageUrl` as a legacy fallback; new product images belong in Convex file storage.
+- Schema changes or data migrations require an explicit migration plan and approval before execution.
+
+## Stripe, email, and security
+
+- Verify Stripe webhook signatures before processing events.
+- Keep checkout, payment, order-state, and email changes idempotent where possible.
+- Do not send real emails, charge cards, deploy, rotate credentials, or modify production data without explicit user authorization.
+- Do not weaken authentication, authorization, validation, webhook verification, or secret handling just to make a task pass.
+
+## Verification
+
+Run the checks relevant to the files changed:
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm build
+```
+
+- Run `pnpm lint` and `pnpm typecheck` for normal TypeScript changes.
+- Run `pnpm build` for routing, configuration, dependency, or production-behavior changes when practical.
+- Run focused automated tests when they exist, and add coverage for new logic when a suitable test setup is present.
+- If a check is not run or cannot run, report that clearly with the reason. Do not claim verification that did not occur.
+
+## Git and handoff
+
+- Make small, cohesive commits using Conventional Commits, such as `feat(cart): add checkout validation`.
+- Do not stage unrelated existing changes.
+- Do not amend, reset, force-push, deploy, or delete material data unless the user explicitly requests it.
+- Before handoff, summarize the ticket, changed files, verification performed, and any known limitations or follow-up work.
