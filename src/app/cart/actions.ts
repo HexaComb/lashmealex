@@ -279,6 +279,6 @@ export async function createCheckoutSessionAction(cartId: string): Promise<Check
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("createCheckoutSessionAction error:", message);
-    return { ok: false, error: message };
+    return { ok: false, error: "Checkout is temporarily unavailable. Please try again later." };
   }
 }
