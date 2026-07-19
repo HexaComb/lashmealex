@@ -85,7 +85,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const hydrateFromServer = useCallback(async (id: string) => {
     const cart = await getCartAction(id);
-    if (!cart) {
+    if (!cart || cart.status !== 'active') {
       if (typeof window !== 'undefined') window.localStorage.removeItem(CART_STORAGE_KEY);
       setCartId(null);
       setIdentity(null);

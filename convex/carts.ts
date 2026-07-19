@@ -246,6 +246,9 @@ export const startOverCart = mutation({
 async function touchCart(ctx: MutationCtx, cartId: string) {
   const cart = await getCartById(ctx, cartId);
   if (!cart) return;
+  if (cart.status !== "active") {
+    throw new Error("Cart is no longer active.");
+  }
   const now = Date.now();
   await ctx.db.patch(cart._id, { updatedAt: now, lastActiveAt: now });
 }
@@ -253,7 +256,8 @@ async function touchCart(ctx: MutationCtx, cartId: string) {
 export const upsertCartItem = mutation({
   args: { cartId: v.string(), productId: v.string(), quantity: v.number(), accessToken: v.string() },
   handler: async (ctx, args) => {
-    await requireCartAccess(ctx, args.cartId, args.accessToken);
+    const cart = await requireCartAccess(ctx, args.cartId, args.accessToken);
+    if (cart.status !== "active") throw new Error("Cart is no longer active.");
     if (args.quantity <= 0) return;
     const existing = await ctx.db
       .query("cartItems")
@@ -284,7 +288,8 @@ export const upsertCartItem = mutation({
 export const setCartItemQuantity = mutation({
   args: { cartId: v.string(), productId: v.string(), quantity: v.number(), accessToken: v.string() },
   handler: async (ctx, args) => {
-    await requireCartAccess(ctx, args.cartId, args.accessToken);
+    const cart = await requireCartAccess(ctx, args.cartId, args.accessToken);
+    if (cart.status !== "active") throw new Error("Cart is no longer active.");
     const existing = await ctx.db
       .query("cartItems")
       .withIndex("by_cartId_productId", (q) =>
@@ -318,7 +323,8 @@ export const setCartItemQuantity = mutation({
 export const removeCartItem = mutation({
   args: { cartId: v.string(), productId: v.string(), accessToken: v.string() },
   handler: async (ctx, args) => {
-    await requireCartAccess(ctx, args.cartId, args.accessToken);
+    const cart = await requireCartAccess(ctx, args.cartId, args.accessToken);
+    if (cart.status !== "active") throw new Error("Cart is no longer active.");
     const existing = await ctx.db
       .query("cartItems")
       .withIndex("by_cartId_productId", (q) =>
@@ -333,7 +339,8 @@ export const removeCartItem = mutation({
 export const clearCart = mutation({
   args: { cartId: v.string(), accessToken: v.string() },
   handler: async (ctx, args) => {
-    await requireCartAccess(ctx, args.cartId, args.accessToken);
+    const cart = await requireCartAccess(ctx, args.cartId, args.accessToken);
+    if (cart.status !== "active") throw new Error("Cart is no longer active.");
     const items = await ctx.db
       .query("cartItems")
       .withIndex("by_cartId", (q) => q.eq("cartId", args.cartId))
@@ -352,7 +359,8 @@ export const mergeCartItems = mutation({
     incoming: v.array(v.object({ productId: v.string(), quantity: v.number() })),
   },
   handler: async (ctx, args) => {
-    await requireCartAccess(ctx, args.cartId, args.accessToken);
+    const cart = await requireCartAccess(ctx, args.cartId, args.accessToken);
+    if (cart.status !== "active") throw new Error("Cart is no longer active.");
     for (const item of args.incoming) {
       if (!item.productId || item.quantity <= 0) continue;
       const existing = await ctx.db
@@ -388,7 +396,8 @@ export const replaceCartItems = mutation({
     incoming: v.array(v.object({ productId: v.string(), quantity: v.number() })),
   },
   handler: async (ctx, args) => {
-    await requireCartAccess(ctx, args.cartId, args.accessToken);
+    const cart = await requireCartAccess(ctx, args.cartId, args.accessToken);
+    if (cart.status !== "active") throw new Error("Cart is no longer active.");
     const items = await ctx.db
       .query("cartItems")
       .withIndex("by_cartId", (q) => q.eq("cartId", args.cartId))

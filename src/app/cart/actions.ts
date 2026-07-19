@@ -61,7 +61,7 @@ export async function startCartAction(formData: FormData): Promise<StartCartResu
   const normalizedPhone = normalizePhone(phone);
   const existing = await findCartByEmail(normalized);
 
-  if (existing) {
+  if (existing && existing.status === "active") {
     // An email match alone must not issue a cart capability. The server checks
     // the remaining cart identity fields before rotating the capability, then
     // the normal resolve action remains capability-protected.
@@ -70,6 +70,7 @@ export async function startCartAction(formData: FormData): Promise<StartCartResu
     }
     const accessToken = crypto.randomUUID();
     await rotateCartAccessTokenForVerifiedShopper(existing.id, accessToken);
+    const full = await getCartWithItems(existing.id, accessToken);
     const cookieStore = await cookies();
     cookieStore.set("lashmealex_cart_access", `${existing.id}.${accessToken}`, {
       httpOnly: true,
@@ -81,7 +82,7 @@ export async function startCartAction(formData: FormData): Promise<StartCartResu
       ok: false,
       conflict: "existing",
       existingCartId: existing.id,
-      itemCount: 0,
+      itemCount: full?.itemCount ?? 0,
       name: existing.name,
     };
   }
@@ -174,6 +175,14 @@ export type MutationResult =
   | { ok: true; cartId: string }
   | { ok: false; error: string };
 
+async function requireActiveCart(cartId: string, accessToken: string): Promise<MutationResult | null> {
+  const cart = await getCartWithItems(cartId, accessToken);
+  if (!cart || cart.status !== "active") {
+    return { ok: false, error: "This cart is no longer active. Start a new cart to continue." };
+  }
+  return null;
+}
+
 export async function addCartItemAction(formData: FormData): Promise<MutationResult> {
   const cartId = String(formData.get("cartId") ?? "");
   const productId = String(formData.get("productId") ?? "");
@@ -184,6 +193,8 @@ export async function addCartItemAction(formData: FormData): Promise<MutationRes
   }
   const accessToken = await requireCartCapability(cartId);
   if (!accessToken) return { ok: false, error: "Cart access expired." };
+  const inactiveCart = await requireActiveCart(cartId, accessToken);
+  if (inactiveCart) return inactiveCart;
 
   const active = await validateActiveProduct(productId);
   if (!active) return { ok: false, error: "This item is not available." };
@@ -211,6 +222,8 @@ export async function updateCartItemAction(formData: FormData): Promise<Mutation
   }
   const accessToken = await requireCartCapability(cartId);
   if (!accessToken) return { ok: false, error: "Cart access expired." };
+  const inactiveCart = await requireActiveCart(cartId, accessToken);
+  if (inactiveCart) return inactiveCart;
 
   if (quantity > 0) {
     const inventory = await getProductInventory(productId);
@@ -230,6 +243,8 @@ export async function removeCartItemAction(formData: FormData): Promise<Mutation
   if (!cartId || !productId) return { ok: false, error: "Invalid request." };
   const accessToken = await requireCartCapability(cartId);
   if (!accessToken) return { ok: false, error: "Cart access expired." };
+  const inactiveCart = await requireActiveCart(cartId, accessToken);
+  if (inactiveCart) return inactiveCart;
   await removeCartItemLib(cartId, productId, accessToken);
   revalidatePath("/admin/carts");
   revalidatePath(`/admin/carts/${cartId}`);
@@ -241,6 +256,8 @@ export async function clearCartAction(formData: FormData): Promise<MutationResul
   if (!cartId) return { ok: false, error: "Invalid request." };
   const accessToken = await requireCartCapability(cartId);
   if (!accessToken) return { ok: false, error: "Cart access expired." };
+  const inactiveCart = await requireActiveCart(cartId, accessToken);
+  if (inactiveCart) return inactiveCart;
   await clearCartLib(cartId, accessToken);
   revalidatePath("/admin/carts");
   revalidatePath(`/admin/carts/${cartId}`);
@@ -256,7 +273,10 @@ export async function createCheckoutSessionAction(cartId: string): Promise<Check
 
   try {
     const cart = await getCartWithItems(cartId, accessToken);
-    if (!cart || cart.items.length === 0) return { ok: false, error: "Your cart is empty." };
+    if (!cart || cart.status !== "active") {
+      return { ok: false, error: "This cart is no longer active. Start a new cart to continue." };
+    }
+    if (cart.items.length === 0) return { ok: false, error: "Your cart is empty." };
 
     const h = await headers();
     const host = h.get("host") ?? "localhost:3000";

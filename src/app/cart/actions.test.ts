@@ -45,6 +45,7 @@ import { createCheckoutSessionAction, resolveCartConflictAction, startCartAction
 test("creates a Stripe checkout session only for the cart held by the capability cookie", async () => {
   mocks.getCartWithItems.mockResolvedValue({
     email: "customer@example.com",
+    status: "active",
     items: [{
       id: "line_1",
       name: "Lash Set",
@@ -71,6 +72,7 @@ test("creates a Stripe checkout session only for the cart held by the capability
 test("does not expose checkout configuration errors to customers", async () => {
   mocks.getCartWithItems.mockResolvedValue({
     email: "customer@example.com",
+    status: "active",
     items: [{
       id: "line_1",
       name: "Lash Set",
@@ -119,6 +121,7 @@ test("issues a capability for a verified returning shopper before showing the ca
     id: "cart_1",
     name: "Customer",
     phone: "5555555555",
+    status: "active",
   });
   const formData = new FormData();
   formData.set("email", "customer@example.com");
@@ -149,6 +152,7 @@ test("does not issue a cart capability when returning shopper details do not mat
     id: "cart_1",
     name: "Customer",
     phone: "5555555555",
+    status: "active",
   });
   const formData = new FormData();
   formData.set("email", "customer@example.com");
