@@ -183,6 +183,42 @@ export const createCart = mutation({
   },
 });
 
+export const startOverCart = mutation({
+  args: {
+    cartId: v.string(),
+    accessToken: v.string(),
+    newAccessToken: v.string(),
+    email: v.string(),
+    phone: v.string(),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existingCart = await requireCartAccess(ctx, args.cartId, args.accessToken);
+    const existingItems = await ctx.db
+      .query("cartItems")
+      .withIndex("by_cartId", (q) => q.eq("cartId", args.cartId))
+      .collect();
+
+    for (const item of existingItems) await ctx.db.delete(item._id);
+    await ctx.db.delete(existingCart._id);
+
+    const id = crypto.randomUUID();
+    const now = Date.now();
+    await ctx.db.insert("carts", {
+      id,
+      accessTokenHash: await hashCartAccessToken(args.newAccessToken),
+      email: normalizeEmail(args.email),
+      phone: normalizePhone(args.phone),
+      name: args.name.trim(),
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+      lastActiveAt: now,
+    });
+    return id;
+  },
+});
+
 async function touchCart(ctx: MutationCtx, cartId: string) {
   const cart = await getCartById(ctx, cartId);
   if (!cart) return;

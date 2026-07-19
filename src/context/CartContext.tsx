@@ -276,6 +276,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       fd.set('existingCartId', conflict.existingCartId);
       fd.set('intent', intent);
       fd.set('pendingItems', JSON.stringify(pending));
+      fd.set('email', conflict.attempted.email);
+      fd.set('phone', conflict.attempted.phone);
+      fd.set('name', conflict.attempted.name);
       const result = await resolveCartConflictAction(fd);
 
       if (result.ok) {
