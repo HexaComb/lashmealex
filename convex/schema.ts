@@ -27,6 +27,11 @@ export const productFields = {
 export const orderFields = {
   id: v.string(),
   stripeSessionId: v.optional(v.string()),
+  // Added as optional so orders created before payment reconciliation remain valid.
+  stripePaymentStatus: v.optional(v.string()),
+  lastStripeEventId: v.optional(v.string()),
+  lastStripeEventType: v.optional(v.string()),
+  paymentUpdatedAt: v.optional(v.number()),
   status: v.string(),
   fulfillmentStatus: v.string(),
   // Optional so existing orders remain valid while the status-link rollout completes.
@@ -54,8 +59,20 @@ export const orderItemFields = {
   price: v.number(),
 };
 
+export const stripeWebhookEventFields = {
+  eventId: v.string(),
+  eventType: v.string(),
+  sessionId: v.optional(v.string()),
+  cartId: v.optional(v.string()),
+  paymentStatus: v.optional(v.string()),
+  outcome: v.string(),
+  createdAt: v.number(),
+};
+
 export const cartFields = {
   id: v.string(),
+  // Optional for a safe schema rollout; carts without it are intentionally rejected.
+  accessTokenHash: v.optional(v.string()),
   email: v.string(),
   phone: v.string(),
   name: v.string(),
@@ -99,6 +116,9 @@ export default defineSchema({
   orderItems: defineTable(orderItemFields)
     .index("by_externalId", ["id"])
     .index("by_orderId", ["orderId"]),
+  stripeWebhookEvents: defineTable(stripeWebhookEventFields)
+    .index("by_eventId", ["eventId"])
+    .index("by_sessionId", ["sessionId"]),
   carts: defineTable(cartFields)
     .index("by_externalId", ["id"])
     .index("by_email", ["email"]),

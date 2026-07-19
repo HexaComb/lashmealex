@@ -3,13 +3,18 @@ import "server-only";
 import { fetchMutation, fetchQuery } from "convex/nextjs";
 
 import { api } from "../../convex/_generated/api";
-import type { CartWithItems } from "./cart";
 import { getAdminSecret, timestampToDate } from "./convex";
 
-export async function createOrderFromCart(cart: CartWithItems, stripeSessionId: string) {
-  return fetchMutation(api.orders.createOrderFromCart, {
-    cartId: cart.id,
-    stripeSessionId,
+export async function processStripeCheckoutEvent(input: {
+  eventId: string;
+  eventType: string;
+  sessionId: string;
+  cartId: string | undefined;
+  paymentStatus: string;
+  shouldCreatePaidOrder: boolean;
+}) {
+  return fetchMutation(api.orders.processStripeCheckoutEvent, {
+    ...input,
   });
 }
 

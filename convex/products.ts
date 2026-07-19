@@ -111,7 +111,12 @@ export const getHeroProduct = query({
       .collect();
     rows.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
     const products = await groupStoreProducts(ctx, rows);
-    return products.find((p) => p.isHero) ?? products[0] ?? null;
+    return (
+      products.find((p) => p.isHero) ??
+      products.find((p) => p.isFeatured) ??
+      products[0] ??
+      null
+    );
   },
 });
 

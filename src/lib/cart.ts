@@ -47,16 +47,20 @@ function mapCart(raw: Awaited<ReturnType<typeof fetchCartRaw>>): CartWithItems |
   };
 }
 
-async function fetchCartRaw(cartId: string) {
-  return fetchQuery(api.carts.getCartWithItems, { cartId });
+async function fetchCartRaw(cartId: string, accessToken: string) {
+  return fetchQuery(api.carts.getCartWithItems, { cartId, accessToken });
 }
 
-export async function getCartWithItems(cartId: string): Promise<CartWithItems | null> {
-  return mapCart(await fetchCartRaw(cartId));
+export async function getCartWithItems(cartId: string, accessToken: string): Promise<CartWithItems | null> {
+  return mapCart(await fetchCartRaw(cartId, accessToken));
+}
+
+export async function getCartWithItemsForAdmin(cartId: string): Promise<CartWithItems | null> {
+  return mapCart(await fetchQuery(api.carts.getCartWithItemsForAdmin, { cartId, adminSecret: getAdminSecret() }));
 }
 
 export async function findCartByEmail(email: string) {
-  const row = await fetchQuery(api.carts.findCartByEmail, { email });
+  const row = await fetchQuery(api.carts.findCartByEmail, { email, adminSecret: getAdminSecret() });
   if (!row) return null;
   return {
     ...row,
@@ -66,38 +70,59 @@ export async function findCartByEmail(email: string) {
   };
 }
 
-export async function createCart(input: { email: string; phone: string; name: string }) {
+export async function createCart(input: { email: string; phone: string; name: string; accessToken: string }) {
   return fetchMutation(api.carts.createCart, input);
 }
 
-export async function upsertCartItem(cartId: string, productId: string, quantity: number) {
-  await fetchMutation(api.carts.upsertCartItem, { cartId, productId, quantity });
+export async function rotateCartAccessTokenForVerifiedShopper(cartId: string, newAccessToken: string) {
+  await fetchMutation(api.carts.rotateCartAccessTokenForVerifiedShopper, {
+    cartId,
+    newAccessToken,
+    adminSecret: getAdminSecret(),
+  });
 }
 
-export async function setCartItemQuantity(cartId: string, productId: string, quantity: number) {
-  await fetchMutation(api.carts.setCartItemQuantity, { cartId, productId, quantity });
+export async function startOverCart(input: {
+  cartId: string;
+  accessToken: string;
+  newAccessToken: string;
+  email: string;
+  phone: string;
+  name: string;
+}) {
+  return fetchMutation(api.carts.startOverCart, input);
 }
 
-export async function removeCartItem(cartId: string, productId: string) {
-  await fetchMutation(api.carts.removeCartItem, { cartId, productId });
+export async function upsertCartItem(cartId: string, productId: string, quantity: number, accessToken: string) {
+  await fetchMutation(api.carts.upsertCartItem, { cartId, productId, quantity, accessToken });
 }
 
-export async function clearCart(cartId: string) {
-  await fetchMutation(api.carts.clearCart, { cartId });
+export async function setCartItemQuantity(cartId: string, productId: string, quantity: number, accessToken: string) {
+  await fetchMutation(api.carts.setCartItemQuantity, { cartId, productId, quantity, accessToken });
+}
+
+export async function removeCartItem(cartId: string, productId: string, accessToken: string) {
+  await fetchMutation(api.carts.removeCartItem, { cartId, productId, accessToken });
+}
+
+export async function clearCart(cartId: string, accessToken: string) {
+  await fetchMutation(api.carts.clearCart, { cartId, accessToken });
 }
 
 export async function mergeCartItems(
   cartId: string,
   incoming: Array<{ productId: string; quantity: number }>,
+  accessToken: string,
 ) {
-  await fetchMutation(api.carts.mergeCartItems, { cartId, incoming });
+  await fetchMutation(api.carts.mergeCartItems, { cartId, incoming, accessToken });
 }
 
 export async function replaceCartItems(
   cartId: string,
   incoming: Array<{ productId: string; quantity: number }>,
+  accessToken: string,
 ) {
-  await fetchMutation(api.carts.replaceCartItems, { cartId, incoming });
+  await fetchMutation(api.carts.replaceCartItems, { cartId, incoming, accessToken });
 }
 
 export async function deleteCart(cartId: string) {
@@ -112,7 +137,7 @@ export async function adminClearCart(cartId: string) {
 }
 
 export async function updateCartStatus(cartId: string, status: CartStatus) {
-  await fetchMutation(api.carts.updateCartStatus, { cartId, status });
+  await fetchMutation(api.carts.updateCartStatus, { cartId, status, adminSecret: getAdminSecret() });
 }
 
 export async function updateCartNotes(cartId: string, notes: string) {
@@ -159,8 +184,8 @@ export async function validateActiveProduct(productId: string) {
   return fetchQuery(api.products.validateActiveProduct, { productId });
 }
 
-export async function getCartItemQuantity(cartId: string, productId: string) {
-  return fetchQuery(api.carts.getCartItemQuantity, { cartId, productId });
+export async function getCartItemQuantity(cartId: string, productId: string, accessToken: string) {
+  return fetchQuery(api.carts.getCartItemQuantity, { cartId, productId, accessToken });
 }
 
 export async function getProductInventory(productId: string) {

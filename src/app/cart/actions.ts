@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import Stripe from "stripe";
 
 import {
@@ -22,7 +22,9 @@ import {
   mergeCartItems,
   removeCartItem as removeCartItemLib,
   replaceCartItems,
+  rotateCartAccessTokenForVerifiedShopper,
   setCartItemQuantity as setCartItemQuantityLib,
+  startOverCart,
   upsertCartItem as upsertCartItemLib,
   validateActiveProduct,
 } from "@/lib/cart";
@@ -32,6 +34,19 @@ export type StartCartResult =
   | { ok: true; cartId: string }
   | { ok: false; conflict: "existing"; existingCartId: string; itemCount: number; name: string }
   | { ok: false; error: string };
+
+async function requireCartCapability(cartId: string): Promise<string | null> {
+  const value = (await cookies()).get("lashmealex_cart_access")?.value;
+  const separator = value?.indexOf(".") ?? -1;
+  if (separator < 1) return null;
+  const cookieCartId = value!.slice(0, separator);
+  const token = value!.slice(separator + 1);
+  return cookieCartId === cartId && token ? token : null;
+}
+
+export async function clearCartCapabilityAction() {
+  (await cookies()).delete("lashmealex_cart_access");
+}
 
 export async function startCartAction(formData: FormData): Promise<StartCartResult> {
   const email = String(formData.get("email") ?? "");
@@ -43,20 +58,43 @@ export async function startCartAction(formData: FormData): Promise<StartCartResu
   if (name.length < 1 || name.length > 80) return { ok: false, error: "Enter your name." };
 
   const normalized = normalizeEmail(email);
+  const normalizedPhone = normalizePhone(phone);
   const existing = await findCartByEmail(normalized);
 
   if (existing) {
-    const full = await getCartWithItems(existing.id);
+    // An email match alone must not issue a cart capability. The server checks
+    // the remaining cart identity fields before rotating the capability, then
+    // the normal resolve action remains capability-protected.
+    if (existing.phone !== normalizedPhone || existing.name.trim().toLocaleLowerCase() !== name.toLocaleLowerCase()) {
+      return { ok: false, error: "We could not verify this existing cart. Please check your details." };
+    }
+    const accessToken = crypto.randomUUID();
+    await rotateCartAccessTokenForVerifiedShopper(existing.id, accessToken);
+    const cookieStore = await cookies();
+    cookieStore.set("lashmealex_cart_access", `${existing.id}.${accessToken}`, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
     return {
       ok: false,
       conflict: "existing",
       existingCartId: existing.id,
-      itemCount: full?.itemCount ?? 0,
+      itemCount: 0,
       name: existing.name,
     };
   }
 
-  const cartId = await createCart({ email: normalized, phone: normalizePhone(phone), name });
+  const accessToken = crypto.randomUUID();
+  const cartId = await createCart({ email: normalized, phone: normalizePhone(phone), name, accessToken });
+  const cookieStore = await cookies();
+  cookieStore.set("lashmealex_cart_access", `${cartId}.${accessToken}`, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
   return { ok: true, cartId };
 }
 
@@ -84,25 +122,52 @@ export async function resolveCartConflictAction(formData: FormData): Promise<Res
   const existingCartId = String(formData.get("existingCartId") ?? "");
   const intent = String(formData.get("intent") ?? "");
   const pending = parsePendingItems(formData.get("pendingItems"));
+  const email = String(formData.get("email") ?? "");
+  const phone = String(formData.get("phone") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
 
   if (!existingCartId) return { ok: false, error: "Missing cart." };
   if (intent !== "resume" && intent !== "replace") return { ok: false, error: "Invalid choice." };
 
-  const cart = await getCartWithItems(existingCartId);
+  const accessToken = await requireCartCapability(existingCartId);
+  if (!accessToken) return { ok: false, error: "Start a new cart to continue securely." };
+  const cart = await getCartWithItems(existingCartId, accessToken);
   if (!cart) return { ok: false, error: "Cart no longer exists." };
 
   if (intent === "resume") {
-    if (pending.length > 0) await mergeCartItems(existingCartId, pending);
-  } else {
-    await replaceCartItems(existingCartId, pending);
+    if (pending.length > 0) await mergeCartItems(existingCartId, pending, accessToken);
+    return { ok: true, cartId: existingCartId };
   }
 
-  return { ok: true, cartId: existingCartId };
+  if (!isValidEmail(email)) return { ok: false, error: "Enter a valid email." };
+  if (!isValidPhone(phone)) return { ok: false, error: "Enter a valid phone number." };
+  if (name.length < 1 || name.length > 80) return { ok: false, error: "Enter your name." };
+
+  const newAccessToken = crypto.randomUUID();
+  const cartId = await startOverCart({
+    cartId: existingCartId,
+    accessToken,
+    newAccessToken,
+    email: normalizeEmail(email),
+    phone: normalizePhone(phone),
+    name,
+  });
+  const cookieStore = await cookies();
+  cookieStore.set("lashmealex_cart_access", `${cartId}.${newAccessToken}`, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
+  if (pending.length > 0) await replaceCartItems(cartId, pending, newAccessToken);
+  return { ok: true, cartId };
 }
 
 export async function getCartAction(cartId: string) {
   if (!cartId) return null;
-  return getCartWithItems(cartId);
+  const accessToken = await requireCartCapability(cartId);
+  if (!accessToken) return null;
+  return getCartWithItems(cartId, accessToken);
 }
 
 export type MutationResult =
@@ -117,18 +182,20 @@ export async function addCartItemAction(formData: FormData): Promise<MutationRes
   if (!cartId || !productId || !Number.isFinite(quantity) || quantity <= 0) {
     return { ok: false, error: "Invalid request." };
   }
+  const accessToken = await requireCartCapability(cartId);
+  if (!accessToken) return { ok: false, error: "Cart access expired." };
 
   const active = await validateActiveProduct(productId);
   if (!active) return { ok: false, error: "This item is not available." };
 
   const inventory = await getProductInventory(productId);
   if (inventory === null) return { ok: false, error: "This item is not available." };
-  const currentQty = await getCartItemQuantity(cartId, productId);
+  const currentQty = await getCartItemQuantity(cartId, productId, accessToken);
   if (currentQty + quantity > inventory) {
     return { ok: false, error: `Only ${inventory - currentQty} left in stock.` };
   }
 
-  await upsertCartItemLib(cartId, productId, quantity);
+  await upsertCartItemLib(cartId, productId, quantity, accessToken);
   revalidatePath("/admin/carts");
   revalidatePath(`/admin/carts/${cartId}`);
   return { ok: true, cartId };
@@ -142,6 +209,8 @@ export async function updateCartItemAction(formData: FormData): Promise<Mutation
   if (!cartId || !productId || !Number.isFinite(quantity) || quantity < 0) {
     return { ok: false, error: "Invalid request." };
   }
+  const accessToken = await requireCartCapability(cartId);
+  if (!accessToken) return { ok: false, error: "Cart access expired." };
 
   if (quantity > 0) {
     const inventory = await getProductInventory(productId);
@@ -149,7 +218,7 @@ export async function updateCartItemAction(formData: FormData): Promise<Mutation
     if (quantity > inventory) return { ok: false, error: `Only ${inventory} left in stock.` };
   }
 
-  await setCartItemQuantityLib(cartId, productId, quantity);
+  await setCartItemQuantityLib(cartId, productId, quantity, accessToken);
   revalidatePath("/admin/carts");
   revalidatePath(`/admin/carts/${cartId}`);
   return { ok: true, cartId };
@@ -159,7 +228,9 @@ export async function removeCartItemAction(formData: FormData): Promise<Mutation
   const cartId = String(formData.get("cartId") ?? "");
   const productId = String(formData.get("productId") ?? "");
   if (!cartId || !productId) return { ok: false, error: "Invalid request." };
-  await removeCartItemLib(cartId, productId);
+  const accessToken = await requireCartCapability(cartId);
+  if (!accessToken) return { ok: false, error: "Cart access expired." };
+  await removeCartItemLib(cartId, productId, accessToken);
   revalidatePath("/admin/carts");
   revalidatePath(`/admin/carts/${cartId}`);
   return { ok: true, cartId };
@@ -168,7 +239,9 @@ export async function removeCartItemAction(formData: FormData): Promise<Mutation
 export async function clearCartAction(formData: FormData): Promise<MutationResult> {
   const cartId = String(formData.get("cartId") ?? "");
   if (!cartId) return { ok: false, error: "Invalid request." };
-  await clearCartLib(cartId);
+  const accessToken = await requireCartCapability(cartId);
+  if (!accessToken) return { ok: false, error: "Cart access expired." };
+  await clearCartLib(cartId, accessToken);
   revalidatePath("/admin/carts");
   revalidatePath(`/admin/carts/${cartId}`);
   return { ok: true, cartId };
@@ -178,9 +251,11 @@ export type CheckoutResult = { ok: true; url: string } | { ok: false; error: str
 
 export async function createCheckoutSessionAction(cartId: string): Promise<CheckoutResult> {
   if (!cartId) return { ok: false, error: "No cart found." };
+  const accessToken = await requireCartCapability(cartId);
+  if (!accessToken) return { ok: false, error: "Cart access expired." };
 
   try {
-    const cart = await getCartWithItems(cartId);
+    const cart = await getCartWithItems(cartId, accessToken);
     if (!cart || cart.items.length === 0) return { ok: false, error: "Your cart is empty." };
 
     const h = await headers();
@@ -221,6 +296,6 @@ export async function createCheckoutSessionAction(cartId: string): Promise<Check
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("createCheckoutSessionAction error:", message);
-    return { ok: false, error: message };
+    return { ok: false, error: "Checkout is temporarily unavailable. Please try again later." };
   }
 }

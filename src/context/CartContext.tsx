@@ -13,6 +13,7 @@ import {
 import {
   addCartItemAction,
   clearCartAction,
+  clearCartCapabilityAction,
   getCartAction,
   removeCartItemAction,
   resolveCartConflictAction,
@@ -275,6 +276,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       fd.set('existingCartId', conflict.existingCartId);
       fd.set('intent', intent);
       fd.set('pendingItems', JSON.stringify(pending));
+      fd.set('email', conflict.attempted.email);
+      fd.set('phone', conflict.attempted.phone);
+      fd.set('name', conflict.attempted.name);
       const result = await resolveCartConflictAction(fd);
 
       if (result.ok) {
@@ -295,6 +299,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const signOutCart = useCallback(() => {
+    void clearCartCapabilityAction();
     if (typeof window !== 'undefined') window.localStorage.removeItem(CART_STORAGE_KEY);
     setCartId(null);
     setIdentity(null);

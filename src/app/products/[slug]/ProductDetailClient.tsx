@@ -352,7 +352,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                 <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted">
                   <div className="flex items-center gap-2">
                     <Truck size={16} />
-                    <span>Free pickup over $25</span>
+                    <span>Local Fresno pickup</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Shield size={16} />
@@ -360,7 +360,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                   </div>
                   <div className="flex items-center gap-2">
                     <RefreshCw size={16} />
-                    <span>Easy returns</span>
+                    <span>Returns reviewed case by case</span>
                   </div>
                 </div>
               </div>

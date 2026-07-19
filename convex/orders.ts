@@ -52,21 +52,71 @@ export const getPublicOrderStatus = query({
   },
 });
 
-export const createOrderFromCart = mutation({
+export const processStripeCheckoutEvent = mutation({
   args: {
-    cartId: v.string(),
-    stripeSessionId: v.string(),
+    eventId: v.string(),
+    eventType: v.string(),
+    sessionId: v.string(),
+    cartId: v.optional(v.string()),
+    paymentStatus: v.string(),
+    shouldCreatePaidOrder: v.boolean(),
   },
   handler: async (ctx, args) => {
+    const priorEvent = await ctx.db
+      .query("stripeWebhookEvents")
+      .withIndex("by_eventId", (q) => q.eq("eventId", args.eventId))
+      .first();
+    if (priorEvent) return { outcome: "duplicate_event", order: null };
+
+    const now = Date.now();
+    const recordEvent = async (outcome: string) => {
+      await ctx.db.insert("stripeWebhookEvents", {
+        eventId: args.eventId,
+        eventType: args.eventType,
+        sessionId: args.sessionId,
+        cartId: args.cartId,
+        paymentStatus: args.paymentStatus,
+        outcome,
+        createdAt: now,
+      });
+    };
+
+    if (!args.shouldCreatePaidOrder) {
+      const outcome = args.eventType === "checkout.session.async_payment_failed"
+        ? "payment_failed"
+        : args.eventType === "checkout.session.expired"
+          ? "expired"
+          : "awaiting_payment";
+      await recordEvent(outcome);
+      return { outcome, order: null };
+    }
+
+    if (!args.cartId) {
+      await recordEvent("missing_cart_id");
+      return { outcome: "missing_cart_id", order: null };
+    }
+
+    const existingOrder = await ctx.db
+      .query("orders")
+      .withIndex("by_stripeSessionId", (q) => q.eq("stripeSessionId", args.sessionId))
+      .first();
+    if (existingOrder) {
+      await recordEvent("duplicate_session");
+      return { outcome: "duplicate_session", order: null };
+    }
+
     const cart = await ctx.db
       .query("carts")
-      .withIndex("by_externalId", (q) => q.eq("id", args.cartId))
+      .withIndex("by_externalId", (q) => q.eq("id", args.cartId!))
       .first();
-    if (!cart) throw new Error("Cart not found");
+    if (!cart) {
+      await recordEvent("cart_not_found");
+      return { outcome: "cart_not_found", order: null };
+    }
 
     const itemRows = await ctx.db
       .query("cartItems")
-      .withIndex("by_cartId", (q) => q.eq("cartId", args.cartId))
+      .withIndex("by_cartId", (q) => q.eq("cartId", args.cartId!))
       .collect();
 
     const lines = [];
@@ -77,20 +127,32 @@ export const createOrderFromCart = mutation({
         .first();
       if (!product) continue;
       lines.push({
+        product,
         productId: item.productId,
         quantity: item.quantity,
         price: product.price,
       });
     }
 
+    const unavailableLine = lines.find(
+      (line) => !line.product.isActive || line.product.inventory < line.quantity,
+    );
+    if (unavailableLine) {
+      await recordEvent("inventory_unavailable");
+      return { outcome: "inventory_unavailable", order: null };
+    }
+
     const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
-    const now = Date.now();
     const orderId = crypto.randomUUID();
 
     const statusToken = crypto.randomUUID();
     await ctx.db.insert("orders", {
       id: orderId,
-      stripeSessionId: args.stripeSessionId,
+      stripeSessionId: args.sessionId,
+      stripePaymentStatus: args.paymentStatus,
+      lastStripeEventId: args.eventId,
+      lastStripeEventType: args.eventType,
+      paymentUpdatedAt: now,
       status: "paid",
       fulfillmentStatus: "received",
       statusToken,
@@ -103,6 +165,10 @@ export const createOrderFromCart = mutation({
     });
 
     for (const line of lines) {
+      await ctx.db.patch(line.product._id, {
+        inventory: line.product.inventory - line.quantity,
+        updatedAt: now,
+      });
       await ctx.db.insert("orderItems", {
         id: crypto.randomUUID(),
         orderId,
@@ -118,12 +184,18 @@ export const createOrderFromCart = mutation({
       createdAt: now,
     });
 
+    await ctx.db.patch(cart._id, { status: "converted", updatedAt: now, lastActiveAt: now });
+    await recordEvent("order_created");
+
     return {
-      id: orderId,
-      statusToken,
-      fulfillmentStatus: "received" as const,
-      customerEmail: cart.email,
-      customerName: cart.name,
+      outcome: "order_created",
+      order: {
+        id: orderId,
+        statusToken,
+        fulfillmentStatus: "received" as const,
+        customerEmail: cart.email,
+        customerName: cart.name,
+      },
     };
   },
 });

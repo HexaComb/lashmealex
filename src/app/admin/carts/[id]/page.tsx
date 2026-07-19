@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin-auth';
-import { getCartWithItems } from '@/lib/cart';
+import { getCartWithItemsForAdmin } from '@/lib/cart';
 import { formatUsdFromCents } from '@/lib/money';
 import { logoutAction } from '../../auth-actions';
 import { adminClearCartAction, adminDeleteCartAction, adminUpdateCartStatusAction, adminUpdateCartNotesAction } from '../../actions';
@@ -57,7 +57,7 @@ export default async function AdminCartDetailPage({
 }) {
   await requireAdmin();
   const id = (await params).id;
-  const cart = await getCartWithItems(id);
+  const cart = await getCartWithItemsForAdmin(id);
 
   if (!cart) {
     notFound();
