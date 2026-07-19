@@ -6,10 +6,10 @@ This plan inventories the complete Lashmealex ClickUp list as reviewed on 2026-0
 
 | Status | Tickets |
 | --- | ---: |
-| Shipped | 3 |
-| In Review | 1 |
-| In Development | 1 |
-| Backlog | 11 |
+| Shipped | 4 |
+| In Review | 2 |
+| In Development | 0 |
+| Backlog | 10 |
 
 ## Completed and active work
 
@@ -18,8 +18,9 @@ This plan inventories the complete Lashmealex ClickUp list as reviewed on 2026-0
 | [CU-86e2dcjw0](https://app.clickup.com/t/86e2dcjw0) | Product SEO metadata | `codex/86e2dcjw0-product-seo-metadata`; PR #4 merged to `main` | Shipped |
 | [CU-86e2dcm4u](https://app.clickup.com/t/86e2dcm4u) | Hero-product featured fallback | `codex/CU-86e2dcm4u-hero-product-featured-fallback`; PR #6 merged to `main` | Shipped |
 | [CU-86e2dcn2g](https://app.clickup.com/t/86e2dcn2g) | Agent ClickUp workflow guidance | `codex/CU-86e2dcn2g-document-ticket-statuses`; PR #5 merged to `main` | Shipped |
+| [CU-86e2dcmjf](https://app.clickup.com/t/86e2dcmjf) | ClickUp/GitHub linking convention | `fd58e6d` merged directly to `main` before the current isolation rule; status reconciled to Shipped | Shipped |
 | [CU-86e2dcjq9](https://app.clickup.com/t/86e2dcjq9) | Clean homepage design | Keep its existing implementation/PR isolated; review before any dependent homepage changes | In Review |
-| [CU-86e2dcnhh](https://app.clickup.com/t/86e2dcnhh) | This execution plan and ADR | `codex/CU-86e2dcnhh-ticket-plan-adr`; PR #7 | In Development |
+| [CU-86e2dcnhh](https://app.clickup.com/t/86e2dcnhh) | This execution plan and ADR | `codex/CU-86e2dcnhh-ticket-plan-adr`; draft PR #7 | In Review |
 
 ## Delivery sequence
 
@@ -57,7 +58,6 @@ This plan inventories the complete Lashmealex ClickUp list as reviewed on 2026-0
 | [CU-86e2dcm4v](https://app.clickup.com/t/86e2dcm4v) — Restore featured-product controls | Read `isFeatured` from product create/update form data and verify persistence. |
 | [CU-86e2dcm4w](https://app.clickup.com/t/86e2dcm4w) — Fix Orders navigation active state | Derive the active state from the current admin route. |
 | [CU-86e2dcjw3](https://app.clickup.com/t/86e2dcjw3) — Strengthen salon and pickup conversion information | After the homepage-design review, add verified address, hours, contact, directions, and differentiated appointment/pickup paths. |
-| [CU-86e2dcmjf](https://app.clickup.com/t/86e2dcmjf) — ClickUp/GitHub linking convention | Reconcile its Backlog status with its documented `main` commit, then move it through the project completion state after verification. |
 
 ## Per-ticket execution workflow
 
