@@ -2,7 +2,9 @@ import { expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(),
+  findCartByEmail: vi.fn(),
   getCartWithItems: vi.fn(),
+  rotateCartAccessTokenForVerifiedShopper: vi.fn(),
   startOverCart: vi.fn(),
   cookieSet: vi.fn(),
 }));
@@ -18,13 +20,14 @@ vi.mock("next/headers", () => ({
 vi.mock("@/lib/cart", () => ({
   clearCart: vi.fn(),
   createCart: vi.fn(),
-  findCartByEmail: vi.fn(),
+  findCartByEmail: mocks.findCartByEmail,
   getCartItemQuantity: vi.fn(),
   getCartWithItems: mocks.getCartWithItems,
   getProductInventory: vi.fn(),
   mergeCartItems: vi.fn(),
   removeCartItem: vi.fn(),
   replaceCartItems: vi.fn(),
+  rotateCartAccessTokenForVerifiedShopper: mocks.rotateCartAccessTokenForVerifiedShopper,
   setCartItemQuantity: vi.fn(),
   startOverCart: mocks.startOverCart,
   upsertCartItem: vi.fn(),
@@ -37,7 +40,7 @@ vi.mock("stripe", () => ({
   },
 }));
 
-import { createCheckoutSessionAction, resolveCartConflictAction } from "./actions";
+import { createCheckoutSessionAction, resolveCartConflictAction, startCartAction } from "./actions";
 
 test("creates a Stripe checkout session only for the cart held by the capability cookie", async () => {
   mocks.getCartWithItems.mockResolvedValue({
@@ -87,4 +90,54 @@ test("starts over by replacing the authorized cart with a new cart", async () =>
     expect.stringMatching(/^cart_2\./),
     expect.objectContaining({ httpOnly: true }),
   );
+});
+
+test("issues a capability for a verified returning shopper before showing the cart conflict", async () => {
+  mocks.rotateCartAccessTokenForVerifiedShopper.mockClear();
+  mocks.cookieSet.mockClear();
+  mocks.findCartByEmail.mockResolvedValue({
+    id: "cart_1",
+    name: "Customer",
+    phone: "5555555555",
+  });
+  const formData = new FormData();
+  formData.set("email", "customer@example.com");
+  formData.set("phone", "555-555-5555");
+  formData.set("name", "Customer");
+
+  await expect(startCartAction(formData)).resolves.toEqual({
+    ok: false,
+    conflict: "existing",
+    existingCartId: "cart_1",
+    itemCount: 0,
+    name: "Customer",
+  });
+  expect(mocks.rotateCartAccessTokenForVerifiedShopper).toHaveBeenCalledWith(
+    "cart_1",
+    expect.any(String),
+  );
+  expect(mocks.cookieSet).toHaveBeenCalledWith(
+    "lashmealex_cart_access",
+    expect.stringMatching(/^cart_1\./),
+    expect.objectContaining({ httpOnly: true }),
+  );
+});
+
+test("does not issue a cart capability when returning shopper details do not match", async () => {
+  mocks.rotateCartAccessTokenForVerifiedShopper.mockClear();
+  mocks.findCartByEmail.mockResolvedValue({
+    id: "cart_1",
+    name: "Customer",
+    phone: "5555555555",
+  });
+  const formData = new FormData();
+  formData.set("email", "customer@example.com");
+  formData.set("phone", "555-555-0000");
+  formData.set("name", "Customer");
+
+  await expect(startCartAction(formData)).resolves.toEqual({
+    ok: false,
+    error: "We could not verify this existing cart. Please check your details.",
+  });
+  expect(mocks.rotateCartAccessTokenForVerifiedShopper).not.toHaveBeenCalled();
 });

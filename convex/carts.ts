@@ -183,6 +183,30 @@ export const createCart = mutation({
   },
 });
 
+/**
+ * Issues a fresh cart capability after the server has verified the returning
+ * shopper's identity. This is intentionally admin-secret protected so callers
+ * cannot rotate a cart capability by invoking Convex directly.
+ */
+export const rotateCartAccessTokenForVerifiedShopper = mutation({
+  args: {
+    cartId: v.string(),
+    newAccessToken: v.string(),
+    adminSecret: v.string(),
+  },
+  handler: async (ctx, args) => {
+    assertAdminSecret(args.adminSecret);
+    const cart = await getCartById(ctx, args.cartId);
+    if (!cart) throw new Error("Cart no longer exists");
+    const now = Date.now();
+    await ctx.db.patch(cart._id, {
+      accessTokenHash: await hashCartAccessToken(args.newAccessToken),
+      updatedAt: now,
+      lastActiveAt: now,
+    });
+  },
+});
+
 export const startOverCart = mutation({
   args: {
     cartId: v.string(),
