@@ -20,6 +20,23 @@ export function normalizePhone(value: string): string {
   return value.replace(/\D+/g, "");
 }
 
+export function formatPhoneNumber(value: string): string {
+  const digits = normalizePhone(value).slice(0, 11);
+  const hasCountryCode = digits.length === 11 && digits.startsWith("1");
+  const local = hasCountryCode ? digits.slice(1) : digits.slice(0, 10);
+  const parts = [local.slice(0, 3), local.slice(3, 6), local.slice(6, 10)].filter(Boolean);
+
+  if (hasCountryCode) {
+    if (parts.length === 1) return `+1 (${parts[0]}`;
+    if (parts.length === 2) return `+1 (${parts[0]}) ${parts[1]}`;
+    return `+1 (${parts[0]}) ${parts[1]}${parts[2] ? `-${parts[2]}` : ""}`;
+  }
+
+  if (parts.length === 1) return `(${parts[0]}`;
+  if (parts.length === 2) return `(${parts[0]}) ${parts[1]}`;
+  return `(${parts[0]}) ${parts[1]}${parts[2] ? `-${parts[2]}` : ""}`;
+}
+
 export function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }

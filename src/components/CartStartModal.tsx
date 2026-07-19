@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 
 import { useCart } from '@/context/CartContext';
 import { analytics } from '@/lib/analytics';
+import { formatPhoneNumber } from '@/lib/cart-constants';
 
 export default function CartStartModal() {
   const { isModalOpen, closeStartModal, startCart, resolveConflict, conflict, cartError, clearError } = useCart();
@@ -144,8 +145,9 @@ export default function CartStartModal() {
                   <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">Phone *</span>
                   <input
                     type="tel"
+                    inputMode="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
                     required
                     placeholder="(555) 555-5555"
                     className="w-full border border-foreground bg-transparent px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted/40 focus:border-pink-dark"
