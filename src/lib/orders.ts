@@ -50,6 +50,23 @@ export async function listAdminOrders() {
   }));
 }
 
+export async function getAdminOrder(orderId: string) {
+  const result = await fetchQuery(api.orders.getAdminOrder, {
+    adminSecret: getAdminSecret(),
+    orderId,
+  });
+  if (!result) return null;
+
+  return {
+    ...result,
+    order: {
+      ...result.order,
+      createdAt: timestampToDate(result.order.createdAt),
+      updatedAt: timestampToDate(result.order.updatedAt),
+    },
+  };
+}
+
 export async function getAdminOrderStats() {
   return fetchQuery(api.orders.getAdminOrderStats, { adminSecret: getAdminSecret() });
 }

@@ -26,7 +26,7 @@ export default function AdminHeader({ logoutAction, productName }: AdminHeaderPr
   const navItems = [
     { label: 'Overview', href: '/admin', active: pathname === '/admin' && !hash },
     { label: 'Products', href: '/admin#products', active: pathname.startsWith('/admin/products') || (pathname === '/admin' && hash === '#products') },
-    { label: 'Orders', href: '/admin#orders', active: pathname === '/admin' && hash === '#orders' },
+    { label: 'Orders', href: '/admin#orders', active: pathname.startsWith('/admin/orders') || (pathname === '/admin' && hash === '#orders') },
     { label: 'Carts', href: '/admin/carts', active: pathname.startsWith('/admin/carts') },
   ];
 
