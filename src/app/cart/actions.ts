@@ -45,7 +45,7 @@ export async function startCartAction(formData: FormData): Promise<StartCartResu
   const normalized = normalizeEmail(email);
   const existing = await findCartByEmail(normalized);
 
-  if (existing) {
+  if (existing && existing.status === "active") {
     const full = await getCartWithItems(existing.id);
     return {
       ok: false,
@@ -109,6 +109,14 @@ export type MutationResult =
   | { ok: true; cartId: string }
   | { ok: false; error: string };
 
+async function requireActiveCart(cartId: string): Promise<MutationResult | null> {
+  const cart = await getCartWithItems(cartId);
+  if (!cart || cart.status !== "active") {
+    return { ok: false, error: "This cart is no longer active. Start a new cart to continue." };
+  }
+  return null;
+}
+
 export async function addCartItemAction(formData: FormData): Promise<MutationResult> {
   const cartId = String(formData.get("cartId") ?? "");
   const productId = String(formData.get("productId") ?? "");
@@ -117,6 +125,8 @@ export async function addCartItemAction(formData: FormData): Promise<MutationRes
   if (!cartId || !productId || !Number.isFinite(quantity) || quantity <= 0) {
     return { ok: false, error: "Invalid request." };
   }
+  const inactiveCart = await requireActiveCart(cartId);
+  if (inactiveCart) return inactiveCart;
 
   const active = await validateActiveProduct(productId);
   if (!active) return { ok: false, error: "This item is not available." };
@@ -142,6 +152,8 @@ export async function updateCartItemAction(formData: FormData): Promise<Mutation
   if (!cartId || !productId || !Number.isFinite(quantity) || quantity < 0) {
     return { ok: false, error: "Invalid request." };
   }
+  const inactiveCart = await requireActiveCart(cartId);
+  if (inactiveCart) return inactiveCart;
 
   if (quantity > 0) {
     const inventory = await getProductInventory(productId);
@@ -159,6 +171,8 @@ export async function removeCartItemAction(formData: FormData): Promise<Mutation
   const cartId = String(formData.get("cartId") ?? "");
   const productId = String(formData.get("productId") ?? "");
   if (!cartId || !productId) return { ok: false, error: "Invalid request." };
+  const inactiveCart = await requireActiveCart(cartId);
+  if (inactiveCart) return inactiveCart;
   await removeCartItemLib(cartId, productId);
   revalidatePath("/admin/carts");
   revalidatePath(`/admin/carts/${cartId}`);
@@ -168,6 +182,8 @@ export async function removeCartItemAction(formData: FormData): Promise<Mutation
 export async function clearCartAction(formData: FormData): Promise<MutationResult> {
   const cartId = String(formData.get("cartId") ?? "");
   if (!cartId) return { ok: false, error: "Invalid request." };
+  const inactiveCart = await requireActiveCart(cartId);
+  if (inactiveCart) return inactiveCart;
   await clearCartLib(cartId);
   revalidatePath("/admin/carts");
   revalidatePath(`/admin/carts/${cartId}`);
@@ -181,7 +197,10 @@ export async function createCheckoutSessionAction(cartId: string): Promise<Check
 
   try {
     const cart = await getCartWithItems(cartId);
-    if (!cart || cart.items.length === 0) return { ok: false, error: "Your cart is empty." };
+    if (!cart || cart.status !== "active") {
+      return { ok: false, error: "This cart is no longer active. Start a new cart to continue." };
+    }
+    if (cart.items.length === 0) return { ok: false, error: "Your cart is empty." };
 
     const h = await headers();
     const host = h.get("host") ?? "localhost:3000";
