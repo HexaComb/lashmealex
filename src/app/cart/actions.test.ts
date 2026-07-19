@@ -58,3 +58,23 @@ test("creates a Stripe checkout session only for the cart held by the capability
     line_items: [expect.objectContaining({ quantity: 2 })],
   }));
 });
+
+test("does not expose checkout configuration errors to customers", async () => {
+  mocks.getCartWithItems.mockResolvedValue({
+    email: "customer@example.com",
+    items: [{
+      id: "line_1",
+      name: "Lash Set",
+      variantName: "Classic",
+      price: 1800,
+      quantity: 1,
+      image: null,
+    }],
+  });
+  mocks.createSession.mockRejectedValue(new Error("STRIPE_SECRET_KEY is not configured"));
+
+  await expect(createCheckoutSessionAction("cart_1")).resolves.toEqual({
+    ok: false,
+    error: "Checkout is temporarily unavailable. Please try again later.",
+  });
+});
