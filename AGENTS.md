@@ -27,6 +27,15 @@ Every implementation task must be tied to a ClickUp ticket.
 
 Do not combine unrelated tickets in one branch, commit, or pull request.
 
+### ClickUp and GitHub linking
+
+When the ClickUp GitHub integration is connected to this repository's ClickUp Space, it automatically links a branch, commit, or pull request that includes a valid ClickUp task reference.
+
+- Name branches `codex/CU-{task_id}-{short-description}`. For example: `codex/CU-86e2dcjw0-product-seo-metadata`.
+- Include `CU-{task_id}` in the pull request title or description as well, so the task remains linked even if the branch name changes.
+- Use the same task reference in commit messages when practical.
+- Configure ClickUp GitHub automations to move linked tasks to **In Review** when a pull request opens and **Done** when it merges to `main`, if the workspace plan supports those automations.
+
 ## Before making changes
 
 - Inspect the relevant code, documentation, and local conventions first.
