@@ -6,6 +6,7 @@ declare global {
 
 function trackEvent(name: string, data?: Record<string, unknown>) {
   if (typeof window === 'undefined') return;
+  if (window.localStorage.getItem('lashmealex_analytics_consent') !== 'granted') return;
   try {
     window.dispatchEvent(new CustomEvent('lashmealex:analytics', { detail: { name, data } }));
   } catch {
@@ -29,12 +30,9 @@ export const analytics = {
     trackEvent('add_to_cart', { productId, productName, priceCents, quantity });
   },
 
-  /**
-   * Fired when the user submits the cart identity form.
-   * Captures name / email / phone so sessions can be tied to known customers.
-   */
-  cartIdentitySubmitted(name: string, email: string, phone: string) {
-    trackEvent('cart_identity_submitted', { name, email, phone });
+  /** Fired after identity submission; PII never leaves the form boundary. */
+  cartIdentitySubmitted() {
+    trackEvent('cart_identity_submitted');
   },
 
   /** Fired when the user clicks "Checkout Now". */

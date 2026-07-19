@@ -4,6 +4,7 @@ import { assertAdminSecret } from "./lib/admin";
 import {
   ABANDONED_THRESHOLD_MS,
   isValidCartStatus,
+  hashCartAccessToken,
   normalizeEmail,
   normalizePhone,
   type CartStatus,
@@ -51,6 +52,14 @@ async function getCartById(ctx: QueryCtx | MutationCtx, cartId: string) {
     .query("carts")
     .withIndex("by_externalId", (q) => q.eq("id", cartId))
     .first();
+}
+
+async function requireCartAccess(ctx: QueryCtx | MutationCtx, cartId: string, accessToken: string) {
+  const cart = await getCartById(ctx, cartId);
+  if (!cart?.accessTokenHash || cart.accessTokenHash !== await hashCartAccessToken(accessToken)) {
+    throw new Error("Unauthorized cart access");
+  }
+  return cart;
 }
 
 async function getProductImageUrl(ctx: QueryCtx, product: Doc<"products">) {
@@ -108,8 +117,19 @@ async function buildCartWithItems(ctx: QueryCtx, cartId: string): Promise<CartWi
 }
 
 export const getCartWithItems = query({
-  args: { cartId: v.string() },
-  handler: async (ctx, args) => buildCartWithItems(ctx, args.cartId),
+  args: { cartId: v.string(), accessToken: v.string() },
+  handler: async (ctx, args) => {
+    await requireCartAccess(ctx, args.cartId, args.accessToken);
+    return buildCartWithItems(ctx, args.cartId);
+  },
+});
+
+export const getCartWithItemsForAdmin = query({
+  args: { cartId: v.string(), adminSecret: v.string() },
+  handler: async (ctx, args) => {
+    assertAdminSecret(args.adminSecret);
+    return buildCartWithItems(ctx, args.cartId);
+  },
 });
 
 export const findCartByEmail = query({
@@ -124,8 +144,9 @@ export const findCartByEmail = query({
 });
 
 export const getCartItemQuantity = query({
-  args: { cartId: v.string(), productId: v.string() },
+  args: { cartId: v.string(), productId: v.string(), accessToken: v.string() },
   handler: async (ctx, args) => {
+    await requireCartAccess(ctx, args.cartId, args.accessToken);
     const row = await ctx.db
       .query("cartItems")
       .withIndex("by_cartId_productId", (q) =>
@@ -141,12 +162,14 @@ export const createCart = mutation({
     email: v.string(),
     phone: v.string(),
     name: v.string(),
+    accessToken: v.string(),
   },
   handler: async (ctx, args) => {
     const id = crypto.randomUUID();
     const now = Date.now();
     await ctx.db.insert("carts", {
       id,
+      accessTokenHash: await hashCartAccessToken(args.accessToken),
       email: normalizeEmail(args.email),
       phone: normalizePhone(args.phone),
       name: args.name.trim(),
@@ -167,8 +190,9 @@ async function touchCart(ctx: MutationCtx, cartId: string) {
 }
 
 export const upsertCartItem = mutation({
-  args: { cartId: v.string(), productId: v.string(), quantity: v.number() },
+  args: { cartId: v.string(), productId: v.string(), quantity: v.number(), accessToken: v.string() },
   handler: async (ctx, args) => {
+    await requireCartAccess(ctx, args.cartId, args.accessToken);
     if (args.quantity <= 0) return;
     const existing = await ctx.db
       .query("cartItems")
@@ -197,8 +221,9 @@ export const upsertCartItem = mutation({
 });
 
 export const setCartItemQuantity = mutation({
-  args: { cartId: v.string(), productId: v.string(), quantity: v.number() },
+  args: { cartId: v.string(), productId: v.string(), quantity: v.number(), accessToken: v.string() },
   handler: async (ctx, args) => {
+    await requireCartAccess(ctx, args.cartId, args.accessToken);
     const existing = await ctx.db
       .query("cartItems")
       .withIndex("by_cartId_productId", (q) =>
@@ -230,8 +255,9 @@ export const setCartItemQuantity = mutation({
 });
 
 export const removeCartItem = mutation({
-  args: { cartId: v.string(), productId: v.string() },
+  args: { cartId: v.string(), productId: v.string(), accessToken: v.string() },
   handler: async (ctx, args) => {
+    await requireCartAccess(ctx, args.cartId, args.accessToken);
     const existing = await ctx.db
       .query("cartItems")
       .withIndex("by_cartId_productId", (q) =>
@@ -244,8 +270,9 @@ export const removeCartItem = mutation({
 });
 
 export const clearCart = mutation({
-  args: { cartId: v.string() },
+  args: { cartId: v.string(), accessToken: v.string() },
   handler: async (ctx, args) => {
+    await requireCartAccess(ctx, args.cartId, args.accessToken);
     const items = await ctx.db
       .query("cartItems")
       .withIndex("by_cartId", (q) => q.eq("cartId", args.cartId))
@@ -260,9 +287,11 @@ export const clearCart = mutation({
 export const mergeCartItems = mutation({
   args: {
     cartId: v.string(),
+    accessToken: v.string(),
     incoming: v.array(v.object({ productId: v.string(), quantity: v.number() })),
   },
   handler: async (ctx, args) => {
+    await requireCartAccess(ctx, args.cartId, args.accessToken);
     for (const item of args.incoming) {
       if (!item.productId || item.quantity <= 0) continue;
       const existing = await ctx.db
@@ -294,9 +323,11 @@ export const mergeCartItems = mutation({
 export const replaceCartItems = mutation({
   args: {
     cartId: v.string(),
+    accessToken: v.string(),
     incoming: v.array(v.object({ productId: v.string(), quantity: v.number() })),
   },
   handler: async (ctx, args) => {
+    await requireCartAccess(ctx, args.cartId, args.accessToken);
     const items = await ctx.db
       .query("cartItems")
       .withIndex("by_cartId", (q) => q.eq("cartId", args.cartId))

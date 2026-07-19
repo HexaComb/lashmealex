@@ -25,7 +25,7 @@ export default function CartStartModal() {
     setSubmitting(true);
     const result = await startCart({ email, phone, name });
     if ('ok' in result && result.ok) {
-      analytics.cartIdentitySubmitted(name, email, phone);
+      analytics.cartIdentitySubmitted();
     }
     setSubmitting(false);
   };
