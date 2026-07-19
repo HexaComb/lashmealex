@@ -22,9 +22,11 @@ Every implementation task must be tied to a ClickUp ticket.
 1. Search ClickUp for a ticket that matches the requested work before starting.
 2. If a matching ticket exists, update it with the clarified scope and relevant progress.
 3. If no matching ticket is found, create one before beginning implementation.
-4. Use one dedicated branch per ClickUp ticket. Name it with the repository's `codex/` prefix and include the ticket identifier when available.
-5. When the requested work moves to another ClickUp ticket, tell the user that the work should continue on that ticket's branch before making changes.
-6. Update the associated ClickUp ticket status at meaningful workflow transitions:
+4. For repository-wide process or documentation work that does not belong to a product ticket, create a standalone ticket and clearly tell the user that it is separate before making changes.
+5. Create or switch to the ticket's dedicated branch before editing or committing. Start it from `main` unless the ticket explicitly depends on another branch.
+6. Keep each ticket isolated: do not commit, push, or open a PR containing another ticket's work. If the wrong base branch is used, isolate the branch before pushing.
+7. Open the pull request from that ticket's branch and include its `CU-{task_id}` reference in the branch name, commit, and PR title or description.
+8. Update the associated ClickUp ticket status at meaningful workflow transitions:
    - Set **In Development** when implementation begins.
    - Set **In Review** immediately after creating a pull request.
    - Set **Done** only after the pull request merges to `main` or the user explicitly directs closure.
