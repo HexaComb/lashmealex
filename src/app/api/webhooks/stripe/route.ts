@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
-import { updateCartStatus } from "@/lib/cart";
-import { createOrderFromCart, getOrderByStripeSessionId } from "@/lib/orders";
+import { processStripeCheckoutEvent } from "@/lib/orders";
 import { sendOrderStatusEmail } from "@/lib/order-email";
 import { createStripeClient, getStripeWebhookSecret } from "@/lib/stripe";
 
@@ -23,43 +22,58 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
+  if (
+    event.type === "checkout.session.completed" ||
+    event.type === "checkout.session.async_payment_succeeded" ||
+    event.type === "checkout.session.async_payment_failed" ||
+    event.type === "checkout.session.expired"
+  ) {
     const session = event.data.object;
     const cartId = session.metadata?.cartId;
 
-    if (!cartId) {
-      return NextResponse.json({ error: "Missing cartId in metadata" }, { status: 400 });
-    }
+    const result = await processStripeCheckoutEvent({
+      eventId: event.id,
+      eventType: event.type,
+      sessionId: session.id,
+      cartId,
+      paymentStatus: session.payment_status,
+      shouldCreatePaidOrder:
+        (event.type === "checkout.session.completed" ||
+          event.type === "checkout.session.async_payment_succeeded") &&
+        session.payment_status === "paid",
+    });
 
-    const existing = await getOrderByStripeSessionId(session.id);
-    if (existing) {
-      return NextResponse.json({ received: true });
-    }
-
-    const { getCartWithItems } = await import("@/lib/cart");
-    const cart = await getCartWithItems(cartId);
-    if (!cart) {
-      return NextResponse.json({ error: "Cart not found" }, { status: 404 });
-    }
-
-    const order = await createOrderFromCart(cart, session.id);
-    await updateCartStatus(cartId, "converted");
-
-    try {
-      await sendOrderStatusEmail({
-        customerEmail: order.customerEmail,
-        customerName: order.customerName,
-        fulfillmentStatus: order.fulfillmentStatus,
-        statusToken: order.statusToken,
-        requestOrigin: new URL(request.url).origin,
+    if (
+      result.outcome === "missing_cart_id" ||
+      result.outcome === "cart_not_found" ||
+      result.outcome === "inventory_unavailable"
+    ) {
+      // Surface a durable reconciliation failure to the application's error monitoring.
+      console.error("Stripe webhook requires reconciliation", {
+        eventId: event.id,
+        eventType: event.type,
+        sessionId: session.id,
+        outcome: result.outcome,
       });
-    } catch (error) {
-      // The paid order must remain recorded even when outbound email is temporarily unavailable.
-      console.error("Order confirmation email failed:", error);
     }
 
-    revalidatePath("/admin");
-    revalidatePath("/admin/carts");
+    if (result.order) {
+      try {
+        await sendOrderStatusEmail({
+          customerEmail: result.order.customerEmail,
+          customerName: result.order.customerName,
+          fulfillmentStatus: result.order.fulfillmentStatus,
+          statusToken: result.order.statusToken,
+          requestOrigin: new URL(request.url).origin,
+        });
+      } catch (error) {
+        // The paid order must remain recorded even when outbound email is temporarily unavailable.
+        console.error("Order confirmation email failed:", error);
+      }
+
+      revalidatePath("/admin");
+      revalidatePath("/admin/carts");
+    }
   }
 
   return NextResponse.json({ received: true });
