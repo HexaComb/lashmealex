@@ -289,7 +289,11 @@ export default async function AdminPage() {
                       <input type="hidden" name="orderId" value={order.id} />
 
                       <div>
-                        <p className="text-sm font-semibold text-foreground">{order.customerName ?? order.customerEmail}</p>
+                        <p className="text-sm font-semibold text-foreground">
+                          <AdminActionLink href={`/admin/orders/${order.id}`} tone="ghost" className="-mx-2 px-2 py-0 text-left text-sm normal-case tracking-normal">
+                            {order.customerName ?? order.customerEmail}
+                          </AdminActionLink>
+                        </p>
                         {order.customerName ? <p className="mt-0.5 text-[11px] text-muted">{order.customerEmail}</p> : null}
                         <p className="mt-2 text-xs text-muted">{formatDate(order.createdAt)}</p>
                         <div className="mt-2 flex flex-wrap items-center gap-2">

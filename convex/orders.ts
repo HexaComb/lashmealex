@@ -138,6 +138,44 @@ export const listAdminOrders = query({
   },
 });
 
+export const getAdminOrder = query({
+  args: { adminSecret: v.string(), orderId: v.string() },
+  handler: async (ctx, args) => {
+    assertAdminSecret(args.adminSecret);
+    const order = await ctx.db
+      .query("orders")
+      .withIndex("by_externalId", (q) => q.eq("id", args.orderId))
+      .first();
+    if (!order) return null;
+
+    const itemRows = await ctx.db
+      .query("orderItems")
+      .withIndex("by_orderId", (q) => q.eq("orderId", order.id))
+      .collect();
+
+    const items = await Promise.all(itemRows.map(async (item) => {
+      const product = await ctx.db
+        .query("products")
+        .withIndex("by_externalId", (q) => q.eq("id", item.productId))
+        .first();
+      const imageUrl = product?.imageStorageId ? await ctx.storage.getUrl(product.imageStorageId) : null;
+
+      return {
+        id: item.id,
+        productId: item.productId,
+        name: product?.name ?? "Product no longer available",
+        variantName: product?.variantName ?? null,
+        imageUrl: imageUrl ?? product?.imageUrl ?? null,
+        quantity: item.quantity,
+        price: item.price,
+      };
+    }));
+
+    items.sort((a, b) => a.name.localeCompare(b.name));
+    return { order, items };
+  },
+});
+
 export const getAdminOrderStats = query({
   args: { adminSecret: v.string() },
   handler: async (ctx, args) => {
