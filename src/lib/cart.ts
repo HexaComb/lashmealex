@@ -74,6 +74,14 @@ export async function createCart(input: { email: string; phone: string; name: st
   return fetchMutation(api.carts.createCart, input);
 }
 
+export async function rotateCartAccessTokenForVerifiedShopper(cartId: string, newAccessToken: string) {
+  await fetchMutation(api.carts.rotateCartAccessTokenForVerifiedShopper, {
+    cartId,
+    newAccessToken,
+    adminSecret: getAdminSecret(),
+  });
+}
+
 export async function startOverCart(input: {
   cartId: string;
   accessToken: string;

@@ -22,6 +22,7 @@ import {
   mergeCartItems,
   removeCartItem as removeCartItemLib,
   replaceCartItems,
+  rotateCartAccessTokenForVerifiedShopper,
   setCartItemQuantity as setCartItemQuantityLib,
   startOverCart,
   upsertCartItem as upsertCartItemLib,
@@ -57,9 +58,25 @@ export async function startCartAction(formData: FormData): Promise<StartCartResu
   if (name.length < 1 || name.length > 80) return { ok: false, error: "Enter your name." };
 
   const normalized = normalizeEmail(email);
+  const normalizedPhone = normalizePhone(phone);
   const existing = await findCartByEmail(normalized);
 
   if (existing) {
+    // An email match alone must not issue a cart capability. The server checks
+    // the remaining cart identity fields before rotating the capability, then
+    // the normal resolve action remains capability-protected.
+    if (existing.phone !== normalizedPhone || existing.name.trim().toLocaleLowerCase() !== name.toLocaleLowerCase()) {
+      return { ok: false, error: "We could not verify this existing cart. Please check your details." };
+    }
+    const accessToken = crypto.randomUUID();
+    await rotateCartAccessTokenForVerifiedShopper(existing.id, accessToken);
+    const cookieStore = await cookies();
+    cookieStore.set("lashmealex_cart_access", `${existing.id}.${accessToken}`, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
     return {
       ok: false,
       conflict: "existing",
