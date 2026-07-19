@@ -71,6 +71,8 @@ export const stripeWebhookEventFields = {
 
 export const cartFields = {
   id: v.string(),
+  // Optional for a safe schema rollout; carts without it are intentionally rejected.
+  accessTokenHash: v.optional(v.string()),
   email: v.string(),
   phone: v.string(),
   name: v.string(),

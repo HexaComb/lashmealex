@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         eventType: event.type,
         sessionId: session.id,
         outcome: result.outcome,
-      });
+        });
     }
 
     if (result.order) {

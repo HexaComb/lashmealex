@@ -13,6 +13,7 @@ import {
 import {
   addCartItemAction,
   clearCartAction,
+  clearCartCapabilityAction,
   getCartAction,
   removeCartItemAction,
   resolveCartConflictAction,
@@ -295,6 +296,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const signOutCart = useCallback(() => {
+    void clearCartCapabilityAction();
     if (typeof window !== 'undefined') window.localStorage.removeItem(CART_STORAGE_KEY);
     setCartId(null);
     setIdentity(null);
