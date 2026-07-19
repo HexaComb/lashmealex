@@ -127,10 +127,19 @@ export const processStripeCheckoutEvent = mutation({
         .first();
       if (!product) continue;
       lines.push({
+        product,
         productId: item.productId,
         quantity: item.quantity,
         price: product.price,
       });
+    }
+
+    const unavailableLine = lines.find(
+      (line) => !line.product.isActive || line.product.inventory < line.quantity,
+    );
+    if (unavailableLine) {
+      await recordEvent("inventory_unavailable");
+      return { outcome: "inventory_unavailable", order: null };
     }
 
     const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
@@ -156,6 +165,10 @@ export const processStripeCheckoutEvent = mutation({
     });
 
     for (const line of lines) {
+      await ctx.db.patch(line.product._id, {
+        inventory: line.product.inventory - line.quantity,
+        updatedAt: now,
+      });
       await ctx.db.insert("orderItems", {
         id: crypto.randomUUID(),
         orderId,
