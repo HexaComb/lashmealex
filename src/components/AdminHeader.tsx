@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -14,11 +14,19 @@ interface AdminHeaderProps {
 export default function AdminHeader({ logoutAction, productName }: AdminHeaderProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [hash, setHash] = useState('');
+
+  useEffect(() => {
+    const syncHash = () => setHash(window.location.hash);
+    syncHash();
+    window.addEventListener('hashchange', syncHash);
+    return () => window.removeEventListener('hashchange', syncHash);
+  }, []);
 
   const navItems = [
-    { label: 'Overview', href: '/admin', active: pathname === '/admin' },
-    { label: 'Products', href: '/admin#products', active: pathname.startsWith('/admin/products') },
-    { label: 'Orders', href: '/admin#orders', active: false },
+    { label: 'Overview', href: '/admin', active: pathname === '/admin' && !hash },
+    { label: 'Products', href: '/admin#products', active: pathname.startsWith('/admin/products') || (pathname === '/admin' && hash === '#products') },
+    { label: 'Orders', href: '/admin#orders', active: pathname.startsWith('/admin/orders') || (pathname === '/admin' && hash === '#orders') },
     { label: 'Carts', href: '/admin/carts', active: pathname.startsWith('/admin/carts') },
   ];
 

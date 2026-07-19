@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import Link from 'next/link';
 
 import { useCart } from '@/context/CartContext';
 import { analytics } from '@/lib/analytics';
+import { formatPhoneNumber } from '@/lib/cart-constants';
 
 export default function CartStartModal() {
   const { isModalOpen, closeStartModal, startCart, resolveConflict, conflict, cartError, clearError } = useCart();
@@ -25,7 +27,7 @@ export default function CartStartModal() {
     setSubmitting(true);
     const result = await startCart({ email, phone, name });
     if ('ok' in result && result.ok) {
-      analytics.cartIdentitySubmitted(name, email, phone);
+      analytics.cartIdentitySubmitted();
     }
     setSubmitting(false);
   };
@@ -144,8 +146,9 @@ export default function CartStartModal() {
                   <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted">Phone *</span>
                   <input
                     type="tel"
+                    inputMode="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
                     required
                     placeholder="(555) 555-5555"
                     className="w-full border border-foreground bg-transparent px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted/40 focus:border-pink-dark"
@@ -159,6 +162,9 @@ export default function CartStartModal() {
                 <button type="submit" disabled={submitting} className="btn-primary w-full disabled:opacity-50">
                   {submitting ? 'Starting…' : 'Start Cart'}
                 </button>
+                <p className="text-[10px] leading-relaxed text-muted">
+                  By starting a cart, you acknowledge our <Link href="/policies#privacy" className="font-semibold text-foreground underline underline-offset-2">Privacy</Link> and <Link href="/policies#terms" className="font-semibold text-foreground underline underline-offset-2">Terms</Link>.
+                </p>
               </form>
             )}
           </motion.div>

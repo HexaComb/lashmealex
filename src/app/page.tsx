@@ -187,19 +187,21 @@ export default async function Home() {
                     Visit the Salon.
                   </h2>
                   <p className="mt-10 max-w-xl text-lg leading-relaxed text-muted">
-                    Book a lash appointment or swing by for same-day order pickup.
-                    We&apos;re open Wednesday through Saturday — walk-ins welcome.
+                    Book a lash appointment through GlossGenius, or place a product order for pickup at our Fresno salon. Pickup availability is confirmed with your order during business hours.
                   </p>
 
-                  <div className="mt-14">
+                  <div className="mt-14 flex flex-col gap-3 sm:flex-row">
                     <a
-                      href="https://lashmealex.glossgenius.com/"
+                      href="https://lashmealex.glossgenius.com/services"
                       target="_blank"
                       rel="noreferrer"
                       className="btn-primary min-w-[200px]"
                     >
                       Book an Appointment
                     </a>
+                    <Link href="/shipping-pickup" className="btn-secondary min-w-[200px]">
+                      Pickup Details
+                    </Link>
                   </div>
                 </div>
 
@@ -210,8 +212,9 @@ export default async function Home() {
                         Hours
                       </p>
                       <p className="mt-6 font-display text-3xl font-medium tracking-tight">
-                        Wed – Sat
+                        Mon, Wed – Sat
                       </p>
+                      <p className="mt-3 text-sm leading-6 text-white/70">Mon 9:30–4:30 · Wed–Fri until 5 · Sat until noon</p>
                     </div>
                     <div className="h-px bg-white/15" />
                     <div>
@@ -219,8 +222,9 @@ export default async function Home() {
                         Location
                       </p>
                       <p className="mt-6 font-display text-3xl font-medium tracking-tight">
-                        Fresno, CA
+                        5130 N Blackstone Ave
                       </p>
+                      <a href="https://www.google.com/maps/dir/?api=1&destination=5130+N+Blackstone+Ave,+Fresno,+CA+93710" target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm text-white/70 underline underline-offset-4 transition-colors hover:text-white">Get directions</a>
                     </div>
                     <div className="h-px bg-white/15" />
                     <div>
@@ -228,8 +232,9 @@ export default async function Home() {
                         Online Orders
                       </p>
                       <p className="mt-6 font-display text-3xl font-medium tracking-tight">
-                        Same-Day Pickup
+                        Pickup Only
                       </p>
+                      <p className="mt-3 text-sm leading-6 text-white/70">Shipping is not offered at checkout. Wait for your ready-for-pickup confirmation before visiting.</p>
                     </div>
                   </div>
                 </div>
@@ -248,7 +253,7 @@ export default async function Home() {
       </main>
 
       <footer className="border-t border-foreground bg-[#faf7f5] px-6 py-16 sm:px-12 lg:px-20">
-        <div className="grid gap-16 lg:grid-cols-4">
+        <div className="grid gap-12 lg:grid-cols-5">
           <div className="lg:col-span-1">
             <p className="font-display text-3xl tracking-tighter text-foreground">lashmealex</p>
             <p className="mt-4 text-sm leading-relaxed text-muted">
@@ -280,10 +285,10 @@ export default async function Home() {
               >
                 Book Appointment
               </a>
-              <Link href="/shop" className="block text-sm text-muted transition-colors hover:text-foreground">
+              <Link href="/shipping-pickup" className="block text-sm text-muted transition-colors hover:text-foreground">
                 Shipping & Pickup
               </Link>
-              <Link href="/shop" className="block text-sm text-muted transition-colors hover:text-foreground">
+              <Link href="/contact" className="block text-sm text-muted transition-colors hover:text-foreground">
                 Contact
               </Link>
             </div>
@@ -307,6 +312,15 @@ export default async function Home() {
               >
                 GlossGenius
               </a>
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-foreground">Policies</p>
+            <div className="mt-6 space-y-4">
+              <Link href="/policies#privacy" className="block text-sm text-muted transition-colors hover:text-foreground">Privacy</Link>
+              <Link href="/policies#terms" className="block text-sm text-muted transition-colors hover:text-foreground">Terms</Link>
+              <Link href="/policies#returns" className="block text-sm text-muted transition-colors hover:text-foreground">Returns &amp; Refunds</Link>
+              <Link href="/policies#cancellation" className="block text-sm text-muted transition-colors hover:text-foreground">Cancellation</Link>
             </div>
           </div>
         </div>

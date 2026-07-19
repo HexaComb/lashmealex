@@ -249,13 +249,22 @@ export default async function AdminPage() {
             </section>
 
             <div className="flex flex-col gap-4 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
-              <label className="flex cursor-pointer items-start gap-3 text-xs text-foreground">
-                <input type="checkbox" name="isActive" defaultChecked className="mt-0.5 h-4 w-4 accent-foreground" />
-                <span>
-                  <span className="font-semibold">Active</span>
-                  <span className="block text-muted">Customers can see and buy it.</span>
-                </span>
-              </label>
+              <div className="flex flex-wrap gap-5">
+                <label className="flex cursor-pointer items-start gap-3 text-xs text-foreground">
+                  <input type="checkbox" name="isActive" defaultChecked className="mt-0.5 h-4 w-4 accent-foreground" />
+                  <span>
+                    <span className="font-semibold">Active</span>
+                    <span className="block text-muted">Customers can see and buy it.</span>
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3 text-xs text-foreground">
+                  <input type="checkbox" name="isFeatured" className="mt-0.5 h-4 w-4 accent-foreground" />
+                  <span>
+                    <span className="font-semibold">Featured</span>
+                    <span className="block text-muted">Prioritize it in storefront collections.</span>
+                  </span>
+                </label>
+              </div>
 
               <AdminButton type="submit" tone="primary" className="w-full sm:w-auto sm:min-w-48">
                 Create product
@@ -289,7 +298,11 @@ export default async function AdminPage() {
                       <input type="hidden" name="orderId" value={order.id} />
 
                       <div>
-                        <p className="text-sm font-semibold text-foreground">{order.customerName ?? order.customerEmail}</p>
+                        <p className="text-sm font-semibold text-foreground">
+                          <AdminActionLink href={`/admin/orders/${order.id}`} tone="ghost" className="-mx-2 px-2 py-0 text-left text-sm normal-case tracking-normal">
+                            {order.customerName ?? order.customerEmail}
+                          </AdminActionLink>
+                        </p>
                         {order.customerName ? <p className="mt-0.5 text-[11px] text-muted">{order.customerEmail}</p> : null}
                         <p className="mt-2 text-xs text-muted">{formatDate(order.createdAt)}</p>
                         <div className="mt-2 flex flex-wrap items-center gap-2">
