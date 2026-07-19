@@ -23,6 +23,7 @@ import {
   removeCartItem as removeCartItemLib,
   replaceCartItems,
   setCartItemQuantity as setCartItemQuantityLib,
+  startOverCart,
   upsertCartItem as upsertCartItemLib,
   validateActiveProduct,
 } from "@/lib/cart";
@@ -104,6 +105,9 @@ export async function resolveCartConflictAction(formData: FormData): Promise<Res
   const existingCartId = String(formData.get("existingCartId") ?? "");
   const intent = String(formData.get("intent") ?? "");
   const pending = parsePendingItems(formData.get("pendingItems"));
+  const email = String(formData.get("email") ?? "");
+  const phone = String(formData.get("phone") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
 
   if (!existingCartId) return { ok: false, error: "Missing cart." };
   if (intent !== "resume" && intent !== "replace") return { ok: false, error: "Invalid choice." };
@@ -115,11 +119,31 @@ export async function resolveCartConflictAction(formData: FormData): Promise<Res
 
   if (intent === "resume") {
     if (pending.length > 0) await mergeCartItems(existingCartId, pending, accessToken);
-  } else {
-    await replaceCartItems(existingCartId, pending, accessToken);
+    return { ok: true, cartId: existingCartId };
   }
 
-  return { ok: true, cartId: existingCartId };
+  if (!isValidEmail(email)) return { ok: false, error: "Enter a valid email." };
+  if (!isValidPhone(phone)) return { ok: false, error: "Enter a valid phone number." };
+  if (name.length < 1 || name.length > 80) return { ok: false, error: "Enter your name." };
+
+  const newAccessToken = crypto.randomUUID();
+  const cartId = await startOverCart({
+    cartId: existingCartId,
+    accessToken,
+    newAccessToken,
+    email: normalizeEmail(email),
+    phone: normalizePhone(phone),
+    name,
+  });
+  const cookieStore = await cookies();
+  cookieStore.set("lashmealex_cart_access", `${cartId}.${newAccessToken}`, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
+  if (pending.length > 0) await replaceCartItems(cartId, pending, newAccessToken);
+  return { ok: true, cartId };
 }
 
 export async function getCartAction(cartId: string) {
