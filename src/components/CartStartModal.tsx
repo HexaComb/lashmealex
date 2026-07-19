@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import Link from 'next/link';
 
 import { useCart } from '@/context/CartContext';
 import { analytics } from '@/lib/analytics';
@@ -159,6 +160,9 @@ export default function CartStartModal() {
                 <button type="submit" disabled={submitting} className="btn-primary w-full disabled:opacity-50">
                   {submitting ? 'Starting…' : 'Start Cart'}
                 </button>
+                <p className="text-[10px] leading-relaxed text-muted">
+                  By starting a cart, you acknowledge our <Link href="/policies#privacy" className="font-semibold text-foreground underline underline-offset-2">Privacy</Link> and <Link href="/policies#terms" className="font-semibold text-foreground underline underline-offset-2">Terms</Link>.
+                </p>
               </form>
             )}
           </motion.div>
