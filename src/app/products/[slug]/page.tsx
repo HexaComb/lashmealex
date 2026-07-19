@@ -24,8 +24,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: `${product.name} | Lashmealex Shop`,
+    title: product.name,
     description: product.description || 'Premium lash products',
+    alternates: {
+      canonical: `/products/${product.slug}`,
+    },
     openGraph: {
       title: product.name,
       description: product.description || 'Premium lash products',
