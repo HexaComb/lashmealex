@@ -43,7 +43,11 @@ export async function POST(request: NextRequest) {
         session.payment_status === "paid",
     });
 
-    if (result.outcome === "missing_cart_id" || result.outcome === "cart_not_found") {
+    if (
+      result.outcome === "missing_cart_id" ||
+      result.outcome === "cart_not_found" ||
+      result.outcome === "inventory_unavailable"
+    ) {
       // Surface a durable reconciliation failure to the application's error monitoring.
       console.error("Stripe webhook requires reconciliation", {
         eventId: event.id,
