@@ -1,6 +1,7 @@
 'use server';
 
 import { fetchMutation, fetchQuery } from 'convex/nextjs';
+import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -11,6 +12,8 @@ import { adminClearCart, deleteCart, updateCartNotes, updateCartStatus } from '@
 import { CART_STATUSES, type CartStatus } from '@/lib/cart-constants';
 import { getAdminSecret } from '@/lib/convex';
 import { updateOrder } from '@/lib/orders';
+import { isOrderFulfillmentStatus } from '@/lib/order-status';
+import { sendOrderStatusEmail } from '@/lib/order-email';
 
 function slugify(value: string) {
   return value
@@ -420,11 +423,32 @@ export async function updateOrderAction(formData: FormData) {
   await requireAdmin();
   const orderId = String(formData.get('orderId') ?? '');
   const status = String(formData.get('status') ?? 'pending');
-  const fulfillmentStatus = String(formData.get('fulfillmentStatus') ?? 'unfulfilled');
-  if (!orderId) return;
+  const fulfillmentStatus = String(formData.get('fulfillmentStatus') ?? '');
+  if (!orderId || !['pending', 'paid', 'cancelled'].includes(status) || !isOrderFulfillmentStatus(fulfillmentStatus)) return;
 
-  await updateOrder({ orderId, status, fulfillmentStatus });
+  const order = await updateOrder({
+    orderId,
+    status: status as 'pending' | 'paid' | 'cancelled',
+    fulfillmentStatus,
+  });
+  if (order?.fulfillmentStatusChanged && order.statusToken) {
+    const requestHeaders = await headers();
+    const host = requestHeaders.get('host');
+    const protocol = requestHeaders.get('x-forwarded-proto') ?? 'https';
+    try {
+      await sendOrderStatusEmail({
+        customerEmail: order.customerEmail,
+        customerName: order.customerName,
+        fulfillmentStatus: order.fulfillmentStatus,
+        statusToken: order.statusToken,
+        requestOrigin: host ? `${protocol}://${host}` : undefined,
+      });
+    } catch (error) {
+      console.error('Order status email failed:', error);
+    }
+  }
   revalidatePath('/admin');
+  if (order?.statusToken) revalidatePath(`/orders/${order.statusToken}`);
 }
 
 export async function adminClearCartAction(formData: FormData) {

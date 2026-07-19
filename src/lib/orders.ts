@@ -6,11 +6,24 @@ import { api } from "../../convex/_generated/api";
 import type { CartWithItems } from "./cart";
 import { getAdminSecret, timestampToDate } from "./convex";
 
-export async function createOrderFromCart(cart: CartWithItems, stripeSessionId: string): Promise<string> {
+export async function createOrderFromCart(cart: CartWithItems, stripeSessionId: string) {
   return fetchMutation(api.orders.createOrderFromCart, {
     cartId: cart.id,
     stripeSessionId,
   });
+}
+
+export async function getPublicOrderStatus(statusToken: string) {
+  const row = await fetchQuery(api.orders.getPublicOrderStatus, { statusToken });
+  if (!row) return null;
+  return {
+    ...row,
+    createdAt: timestampToDate(row.createdAt),
+    events: row.events.map((event) => ({
+      ...event,
+      createdAt: timestampToDate(event.createdAt),
+    })),
+  };
 }
 
 export async function getOrderByStripeSessionId(stripeSessionId: string) {
@@ -38,10 +51,10 @@ export async function getAdminOrderStats() {
 
 export async function updateOrder(input: {
   orderId: string;
-  status: string;
-  fulfillmentStatus: string;
+  status: "pending" | "paid" | "cancelled";
+  fulfillmentStatus: "received" | "working_on_it" | "ready_for_pickup" | "picked_up";
 }) {
-  await fetchMutation(api.orders.updateOrder, {
+  return fetchMutation(api.orders.updateOrder, {
     adminSecret: getAdminSecret(),
     ...input,
   });

@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-auth';
 import { getAdminCatalogStats, listAdminProductGroups } from '@/lib/catalog';
 import { formatUsdFromCents } from '@/lib/money';
 import { getAdminOrderStats, listAdminOrders } from '@/lib/orders';
+import { isOrderFulfillmentStatus, orderFulfillmentCopy } from '@/lib/order-status';
 import { getAdminCartStats, listAdminCarts } from '@/lib/cart';
 import AdminHeader from '@/components/AdminHeader';
 import AdminFieldLabel from '@/components/admin/AdminFieldLabel';
@@ -36,9 +37,9 @@ const paymentLabel: Record<string, string> = {
 };
 
 const fulfillmentLabel: Record<string, string> = {
-  unfulfilled: 'Unfulfilled',
-  ready_for_pickup: 'Ready for Pickup',
-  fulfilled: 'Fulfilled',
+  unfulfilled: 'Received',
+  fulfilled: 'Picked up',
+  ...Object.fromEntries(Object.entries(orderFulfillmentCopy).map(([status, copy]) => [status, copy.label])),
 };
 
 function paymentTone(status: string) {
@@ -48,8 +49,9 @@ function paymentTone(status: string) {
 }
 
 function fulfillmentTone(status: string) {
-  if (status === 'fulfilled') return 'success';
+  if (status === 'picked_up' || status === 'fulfilled') return 'success';
   if (status === 'ready_for_pickup') return 'info';
+  if (status === 'working_on_it') return 'warning';
   return 'neutral';
 }
 
@@ -310,10 +312,11 @@ export default async function AdminPage() {
 
                       <label className="space-y-1.5">
                         <AdminFieldLabel>Fulfillment</AdminFieldLabel>
-                        <select name="fulfillmentStatus" defaultValue={order.fulfillmentStatus} className={adminInputClass()}>
-                          <option value="unfulfilled">Unfulfilled</option>
+                        <select name="fulfillmentStatus" defaultValue={isOrderFulfillmentStatus(order.fulfillmentStatus) ? order.fulfillmentStatus : 'received'} className={adminInputClass()}>
+                          <option value="received">Received</option>
+                          <option value="working_on_it">Working on it</option>
                           <option value="ready_for_pickup">Ready for Pickup</option>
-                          <option value="fulfilled">Fulfilled</option>
+                          <option value="picked_up">Picked up</option>
                         </select>
                       </label>
 

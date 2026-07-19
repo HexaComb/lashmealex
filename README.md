@@ -14,7 +14,7 @@ Next.js storefront and owner admin, deployed on **Vercel**, with **Convex** for 
 ```bash
 pnpm install
 cp .env.example .env.local
-# Fill in Convex URL (from `pnpm convex:dev`), admin secrets, and Stripe keys
+# Fill in Convex URL (from `pnpm convex:dev`), admin secrets, Stripe keys, and Resend settings
 
 pnpm convex:dev      # terminal 1: Convex backend
 pnpm dev             # terminal 2: Next.js
@@ -27,7 +27,7 @@ Open `http://localhost:3000`.
 1. Create a Convex project: `npx convex deploy` and set `NEXT_PUBLIC_CONVEX_URL` on Vercel.
 2. Set Convex env vars (`ADMIN_INTERNAL_SECRET`, etc.) to match Vercel.
 3. Connect the repo to Vercel; `pnpm build` is the build command.
-4. Configure Stripe and admin secrets on Vercel (see `.env.example`).
+4. Configure Stripe, Resend (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`), and admin secrets on Vercel (see `.env.example`).
 
 ## Verification
 

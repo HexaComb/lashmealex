@@ -29,6 +29,8 @@ export const orderFields = {
   stripeSessionId: v.optional(v.string()),
   status: v.string(),
   fulfillmentStatus: v.string(),
+  // Optional so existing orders remain valid while the status-link rollout completes.
+  statusToken: v.optional(v.string()),
   subtotal: v.number(),
   total: v.number(),
   customerEmail: v.string(),
@@ -36,6 +38,12 @@ export const orderFields = {
   notes: v.optional(v.string()),
   createdAt: v.number(),
   updatedAt: v.number(),
+};
+
+export const orderStatusEventFields = {
+  orderId: v.string(),
+  status: v.string(),
+  createdAt: v.number(),
 };
 
 export const orderItemFields = {
@@ -84,7 +92,10 @@ export default defineSchema({
     .index("by_parentProductId_and_sortOrder", ["parentProductId", "sortOrder"]),
   orders: defineTable(orderFields)
     .index("by_externalId", ["id"])
-    .index("by_stripeSessionId", ["stripeSessionId"]),
+    .index("by_stripeSessionId", ["stripeSessionId"])
+    .index("by_statusToken", ["statusToken"]),
+  orderStatusEvents: defineTable(orderStatusEventFields)
+    .index("by_orderId_and_createdAt", ["orderId", "createdAt"]),
   orderItems: defineTable(orderItemFields)
     .index("by_externalId", ["id"])
     .index("by_orderId", ["orderId"]),

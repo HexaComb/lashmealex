@@ -2,6 +2,19 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { assertAdminSecret } from "./lib/admin";
 
+const fulfillmentStatusValidator = v.union(
+  v.literal("received"),
+  v.literal("working_on_it"),
+  v.literal("ready_for_pickup"),
+  v.literal("picked_up"),
+);
+
+const paymentStatusValidator = v.union(
+  v.literal("pending"),
+  v.literal("paid"),
+  v.literal("cancelled"),
+);
+
 export const getOrderByStripeSessionId = query({
   args: { stripeSessionId: v.string() },
   handler: async (ctx, args) => {
@@ -9,6 +22,33 @@ export const getOrderByStripeSessionId = query({
       .query("orders")
       .withIndex("by_stripeSessionId", (q) => q.eq("stripeSessionId", args.stripeSessionId))
       .first();
+  },
+});
+
+/**
+ * Retrieves the non-sensitive pickup progress associated with a customer's secret order link.
+ */
+export const getPublicOrderStatus = query({
+  args: { statusToken: v.string() },
+  handler: async (ctx, args) => {
+    const order = await ctx.db
+      .query("orders")
+      .withIndex("by_statusToken", (q) => q.eq("statusToken", args.statusToken))
+      .unique();
+    if (!order) return null;
+
+    const events = await ctx.db
+      .query("orderStatusEvents")
+      .withIndex("by_orderId_and_createdAt", (q) => q.eq("orderId", order.id))
+      .take(20);
+
+    return {
+      id: order.id,
+      fulfillmentStatus: order.fulfillmentStatus,
+      total: order.total,
+      createdAt: order.createdAt,
+      events,
+    };
   },
 });
 
@@ -47,11 +87,13 @@ export const createOrderFromCart = mutation({
     const now = Date.now();
     const orderId = crypto.randomUUID();
 
+    const statusToken = crypto.randomUUID();
     await ctx.db.insert("orders", {
       id: orderId,
       stripeSessionId: args.stripeSessionId,
       status: "paid",
-      fulfillmentStatus: "unfulfilled",
+      fulfillmentStatus: "received",
+      statusToken,
       subtotal,
       total: subtotal,
       customerEmail: cart.email,
@@ -70,7 +112,19 @@ export const createOrderFromCart = mutation({
       });
     }
 
-    return orderId;
+    await ctx.db.insert("orderStatusEvents", {
+      orderId,
+      status: "received",
+      createdAt: now,
+    });
+
+    return {
+      id: orderId,
+      statusToken,
+      fulfillmentStatus: "received" as const,
+      customerEmail: cart.email,
+      customerName: cart.name,
+    };
   },
 });
 
@@ -111,8 +165,8 @@ export const updateOrder = mutation({
   args: {
     adminSecret: v.string(),
     orderId: v.string(),
-    status: v.string(),
-    fulfillmentStatus: v.string(),
+    status: paymentStatusValidator,
+    fulfillmentStatus: fulfillmentStatusValidator,
   },
   handler: async (ctx, args) => {
     assertAdminSecret(args.adminSecret);
@@ -120,11 +174,35 @@ export const updateOrder = mutation({
       .query("orders")
       .withIndex("by_externalId", (q) => q.eq("id", args.orderId))
       .first();
-    if (!order) return;
+    if (!order) return null;
+    const now = Date.now();
+    const currentFulfillmentStatus = order.fulfillmentStatus === "unfulfilled"
+      ? "received"
+      : order.fulfillmentStatus === "fulfilled"
+        ? "picked_up"
+        : order.fulfillmentStatus;
+    const fulfillmentStatusChanged = currentFulfillmentStatus !== args.fulfillmentStatus;
+    const statusToken = order.statusToken ?? crypto.randomUUID();
     await ctx.db.patch(order._id, {
       status: args.status,
       fulfillmentStatus: args.fulfillmentStatus,
-      updatedAt: Date.now(),
+      statusToken,
+      updatedAt: now,
     });
+    if (fulfillmentStatusChanged) {
+      await ctx.db.insert("orderStatusEvents", {
+        orderId: order.id,
+        status: args.fulfillmentStatus,
+        createdAt: now,
+      });
+    }
+    return {
+      id: order.id,
+      statusToken,
+      fulfillmentStatus: args.fulfillmentStatus,
+      fulfillmentStatusChanged,
+      customerEmail: order.customerEmail,
+      customerName: order.customerName ?? null,
+    };
   },
 });

@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 
 import { updateCartStatus } from "@/lib/cart";
 import { createOrderFromCart, getOrderByStripeSessionId } from "@/lib/orders";
+import { sendOrderStatusEmail } from "@/lib/order-email";
 import { createStripeClient, getStripeWebhookSecret } from "@/lib/stripe";
 
 export async function POST(request: NextRequest) {
@@ -41,8 +42,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Cart not found" }, { status: 404 });
     }
 
-    await createOrderFromCart(cart, session.id);
+    const order = await createOrderFromCart(cart, session.id);
     await updateCartStatus(cartId, "converted");
+
+    try {
+      await sendOrderStatusEmail({
+        customerEmail: order.customerEmail,
+        customerName: order.customerName,
+        fulfillmentStatus: order.fulfillmentStatus,
+        statusToken: order.statusToken,
+        requestOrigin: new URL(request.url).origin,
+      });
+    } catch (error) {
+      // The paid order must remain recorded even when outbound email is temporarily unavailable.
+      console.error("Order confirmation email failed:", error);
+    }
 
     revalidatePath("/admin");
     revalidatePath("/admin/carts");
