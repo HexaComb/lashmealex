@@ -42,6 +42,90 @@ When the ClickUp GitHub integration is connected to this repository's ClickUp Sp
 - Use the same task reference in commit messages when practical.
 - Configure ClickUp GitHub automations to move linked tasks to **In Review** when a pull request opens and **Done** when it merges to `main`, if the workspace plan supports those automations.
 
+## Agent workflow
+
+When given a task, follow this end-to-end process. Each step maps to a specific tool or action.
+
+### 1. Explore and understand
+
+- Search the codebase for relevant files, conventions, and existing patterns before writing anything.
+- Read the files that will be changed and their surrounding context.
+- Identify the website's visual or structural conventions when the task touches UI or email.
+
+### 2. Create or find the ClickUp ticket
+
+- Use `clickup_clickup_search` to check for an existing ticket that matches the work.
+- If none found, use `clickup_clickup_create_task` to create one in the **Lashmealex** space (space ID: `90176482789`, default list ID: `901715340178`).
+  - Include a clear description with problem, solution, files changed, and verification steps.
+- Record the `task_id` returned — it is needed for branch naming, commits, and PR.
+
+### 3. Create the feature branch
+
+```bash
+git checkout -b codex/CU-{task_id}-{short-description}
+```
+
+Example: `git checkout -b codex/CU-86e2dgtf4-order-email-redesign`
+
+### 4. Set ticket to In Development
+
+```
+clickup_clickup_update_task → status: "in development"
+```
+
+### 5. Implement the changes
+
+- Follow the codebase conventions documented in this file.
+- Keep changes narrowly scoped to the ticket.
+
+### 6. Verify
+
+```bash
+pnpm lint
+pnpm typecheck
+```
+
+Run `pnpm build` when the change touches routing, configuration, or production behavior.
+
+### 7. Commit
+
+```bash
+git add <files>
+git commit -m "feat(scope): description
+
+Optional body.
+
+CU-{task_id}"
+```
+
+Use Conventional Commits (`feat`, `fix`, `refactor`, `chore`, etc.). Always include `CU-{task_id}` in the commit message.
+
+### 8. Push and create PR
+
+```bash
+git push -u origin codex/CU-{task_id}-{short-description}
+gh pr create --title "feat(scope): description — CU-{task_id}" --body-file <body-file> --base main
+```
+
+- Write the PR body to a temp file first to avoid shell escaping issues with markdown content.
+- Include `CU-{task_id}` in the PR title.
+- The PR body should describe what changed, before/after when relevant, files changed, and verification performed.
+
+### 9. Set ticket to In Review
+
+```
+clickup_clickup_update_task → status: "in review"
+```
+
+### 10. Handoff
+
+Summarize to the user:
+- ClickUp ticket link
+- PR link
+- What changed
+- Verification performed
+- Any known limitations or follow-up work
+
 ## Before making changes
 
 - Inspect the relevant code, documentation, and local conventions first.
