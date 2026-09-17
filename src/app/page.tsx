@@ -269,9 +269,6 @@ export default async function Home() {
               <Link href="/shop?category=lashes" className="block text-sm text-muted transition-colors hover:text-foreground">
                 Lashes
               </Link>
-              <Link href="/admin" className="block text-sm text-muted transition-colors hover:text-foreground">
-                Owner Dashboard
-              </Link>
             </div>
           </div>
           <div>

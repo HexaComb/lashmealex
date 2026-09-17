@@ -45,6 +45,12 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
           </div>
         )}
 
+        {resolvedSearchParams?.error === 'locked' && (
+          <div className="mt-8 border border-foreground bg-[#faf2ee] p-5 text-sm text-foreground">
+            Too many failed sign-in attempts. Wait 15 minutes and try again.
+          </div>
+        )}
+
         <form action={loginAction} className="mt-10 space-y-6">
           <label className="block space-y-3">
             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-foreground">

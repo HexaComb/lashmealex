@@ -408,15 +408,10 @@ export async function deleteVariantAction(formData: FormData) {
   const parentSlug = String(formData.get('parentSlug') ?? '').trim();
   if (!productId || !parentProductId || !parentSlug) return;
 
-  const result = await fetchMutation(api.products.deleteVariant, {
+  await fetchMutation(api.products.deleteVariant, {
     adminSecret: getAdminSecret(),
     productId,
   });
-
-  if (result.siblingCount <= 1) {
-    revalidateCatalogPaths(parentSlug, undefined, slug);
-    redirect('/admin');
-  }
 
   revalidateCatalogPaths(parentSlug, undefined, slug);
   redirect(`/admin/products/${parentSlug}`);

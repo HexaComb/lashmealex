@@ -6,8 +6,9 @@ import { loginAdmin, logoutAdmin } from "@/lib/admin-auth";
 
 export async function loginAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
-  const authenticated = await loginAdmin(password);
-  if (!authenticated) redirect("/admin/login?error=invalid");
+  const result = await loginAdmin(password);
+  if (result === "locked") redirect("/admin/login?error=locked");
+  if (result !== "ok") redirect("/admin/login?error=invalid");
   redirect("/admin");
 }
 

@@ -481,27 +481,15 @@ export const deleteProductGroup = mutation({
   args: { adminSecret: v.string(), parentProductId: v.string() },
   handler: async (ctx, args) => {
     assertAdminSecret(args.adminSecret);
-    const galleryImages = await ctx.db
-      .query("productImages")
-      .withIndex("by_parentProductId_and_sortOrder", (q) => q.eq("parentProductId", args.parentProductId))
-      .collect();
-    for (const image of galleryImages) {
-      await ctx.db.delete(image._id);
-      await ctx.storage.delete(image.imageStorageId);
-    }
+    const now = Date.now();
     const variants = await ctx.db
       .query("products")
       .withIndex("by_parentProductId", (q) => q.eq("parentProductId", args.parentProductId))
       .collect();
 
+    // Hide the catalog group. Never delete product rows or historical orderItems.
     for (const variant of variants) {
-      const orderItems = await ctx.db.query("orderItems").collect();
-      for (const item of orderItems) {
-        if (item.productId === variant.id) {
-          await ctx.db.delete(item._id);
-        }
-      }
-      await ctx.db.delete(variant._id);
+      await ctx.db.patch(variant._id, { isActive: false, isHero: false, updatedAt: now });
     }
   },
 });
@@ -513,13 +501,8 @@ export const deleteVariant = mutation({
     const row = await getProductById(ctx, args.productId);
     if (!row) return { siblingCount: 0 };
 
-    const orderItems = await ctx.db.query("orderItems").collect();
-    for (const item of orderItems) {
-      if (item.productId === args.productId) {
-        await ctx.db.delete(item._id);
-      }
-    }
-    await ctx.db.delete(row._id);
+    // Hide the variant. Keep the row so past orders still resolve names and prices.
+    await ctx.db.patch(row._id, { isActive: false, isHero: false, updatedAt: Date.now() });
 
     const siblings = await ctx.db
       .query("products")
