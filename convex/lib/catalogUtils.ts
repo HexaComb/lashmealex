@@ -39,8 +39,6 @@ export interface StoreProduct {
   isFeatured: boolean;
   isHero: boolean;
   sortOrder: number;
-  rating: number;
-  reviewCount: number;
   features: string[];
   variants: StoreVariant[];
 }
@@ -124,8 +122,6 @@ export function groupProducts(
       isFeatured: sortedRows.some((row) => row.isFeatured),
       isHero: sortedRows.some((row) => row.isHero),
       sortOrder: primaryRow.sortOrder,
-      rating: 5,
-      reviewCount: 0,
       features: [
         "Salon-curated lash trays",
         "Real-time stock — what you see is what we have",

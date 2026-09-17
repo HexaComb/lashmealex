@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Star, ChevronLeft, ChevronRight, Minus, Plus, Truck, Shield, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Minus, Plus, Truck, Shield, RefreshCw } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useCart } from '@/context/CartContext';
 import { analytics } from '@/lib/analytics';
@@ -22,8 +22,6 @@ interface Product {
   description: string;
   images?: string[];
   category: string;
-  rating?: number;
-  reviewCount?: number;
   inStock: boolean;
   features?: string[];
   specifications?: Record<string, string>;
@@ -41,7 +39,6 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
   const [selectedVariantId, setSelectedVariantId] = useState(product.variants[0]?.id ?? '');
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
 
   const selectedVariant =
     product.variants.find((variant) => variant.id === selectedVariantId) ?? product.variants[0];
@@ -67,11 +64,6 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
     }, quantity);
     analytics.addToCart(selectedVariant.id, name, selectedVariant.price, quantity);
     setIsAddingToCart(false);
-  };
-
-  const handleToggleWishlist = () => {
-    setIsWishlisted(!isWishlisted);
-    // Update wishlist state
   };
 
   const handlePreviousImage = () => {
@@ -200,28 +192,6 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                   )}
                 </div>
 
-                {/* Rating */}
-                {product.rating && (
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={18}
-                          className={clsx(
-                            i < Math.floor(product.rating!)
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-[#d0c3bd]'
-                          )}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-foreground">
-                      {product.rating} ({product.reviewCount || 0} reviews)
-                    </span>
-                  </div>
-                )}
-
                 {/* Price */}
                 <div className="flex items-center gap-4">
                   <span className="text-4xl font-semibold text-foreground">
@@ -319,20 +289,6 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                       </button>
                     </div>
                   </div>
-
-                  <button
-                    onClick={handleToggleWishlist}
-                    className="focus-ring rounded-full border border-line bg-white p-3 text-foreground transition-colors hover:text-pink-dark"
-                    aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                  >
-                    <Heart
-                      size={20}
-                      className={clsx(
-                        'transition-colors',
-                        isWishlisted && 'fill-pink-dark text-pink-dark'
-                      )}
-                    />
-                  </button>
                 </div>
 
                 <LoadingButton

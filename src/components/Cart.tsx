@@ -7,6 +7,7 @@ import { LoadingButton } from './LoadingStates';
 import { useCart } from '@/context/CartContext';
 import { createCheckoutSessionAction } from '@/app/cart/actions';
 import { analytics } from '@/lib/analytics';
+import { formatUsdFromCents } from '@/lib/money';
 import { motionPanel } from '@/lib/motion';
 
 export default function Cart() {
@@ -180,7 +181,7 @@ export default function Cart() {
 
                             <div className="flex items-center justify-between mt-4">
                               <span className="text-sm font-bold text-foreground">
-                                ${(item.price / 100).toFixed(2)}
+                                {formatUsdFromCents(item.price)}
                               </span>
 
                               {/* Quantity Controls */}
@@ -228,7 +229,7 @@ export default function Cart() {
                   <div className="space-y-4">
                     <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
                       <span className="text-muted">Subtotal</span>
-                      <span className="text-foreground">${(subtotal / 100).toFixed(2)}</span>
+                      <span className="text-foreground">{formatUsdFromCents(subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
                       <span className="text-muted">Pickup</span>
@@ -236,7 +237,7 @@ export default function Cart() {
                     </div>
                     <div className="flex justify-between text-xl font-bold pt-4 border-t border-line">
                       <span className="text-foreground">Total</span>
-                      <span className="text-foreground">${(subtotal / 100).toFixed(2)}</span>
+                      <span className="text-foreground">{formatUsdFromCents(subtotal)}</span>
                     </div>
                   </div>
 

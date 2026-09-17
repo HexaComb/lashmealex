@@ -7,12 +7,13 @@ import Cart from '@/components/Cart';
 import CartStartModal from '@/components/CartStartModal';
 import FilterSidebar, { FilterOptions } from '@/components/FilterSidebar';
 import Header from '@/components/Header';
-import { FadeIn, ProductCardSkeleton } from '@/components/LoadingStates';
+import { FadeIn } from '@/components/LoadingStates';
 import ProductCard, { type ProductCardProduct } from '@/components/ProductCard';
 import QuickViewModal from '@/components/QuickViewModal';
 import SearchModal from '@/components/SearchModal';
 import type { StoreProduct } from '@/lib/catalog';
 import { useCart } from '@/context/CartContext';
+import { resolveSellableCartVariant, toCartLine } from '@/lib/storefront-product';
 
 interface ShopClientProps {
   initialProducts: StoreProduct[];
@@ -21,16 +22,8 @@ interface ShopClientProps {
 
 const priceCeiling = 100;
 
-type CartProduct = {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  compareAtPrice?: number;
-  description: string;
-  slug?: string;
-  image?: string;
-  inStock?: boolean;
+type CartProduct = ProductCardProduct & {
+  variants?: StoreProduct['variants'];
 };
 
 function toFilterCategory(category: string) {
@@ -54,7 +47,6 @@ export default function ShopClient({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductCardProduct | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
-  const [wishlist, setWishlist] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredProducts = useMemo(() => {
@@ -89,19 +81,9 @@ export default function ShopClient({
   }, [filters, initialProducts, searchQuery]);
 
   const handleAddToCart = async (product: CartProduct, quantity = 1) => {
-    await addItem({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      category: product.category,
-    }, quantity);
-  };
-
-  const handleToggleWishlist = (productId: string) => {
-    setWishlist((items) =>
-      items.includes(productId) ? items.filter((id) => id !== productId) : [...items, productId],
-    );
+    const variant = resolveSellableCartVariant(product);
+    if (!variant?.inStock) return;
+    await addItem(toCartLine(product, variant), quantity);
   };
 
   const handleQuickView = (product: ProductCardProduct) => {
@@ -113,7 +95,6 @@ export default function ShopClient({
     <div className="min-h-screen bg-background">
       <Header
         cartItemCount={itemCount}
-        wishlistItemCount={wishlist.length}
         onSearchToggle={() => setIsSearchOpen(true)}
         onCartToggle={openCart}
         isSearchOpen={isSearchOpen}
@@ -176,7 +157,15 @@ export default function ShopClient({
 
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {initialProducts.length === 0 ? (
-                Array.from({ length: 6 }).map((_, index) => <ProductCardSkeleton key={index} />)
+                <div className="col-span-full border border-dashed border-line py-32 text-center">
+                  <h3 className="mb-6 font-display text-4xl font-medium text-foreground">
+                    Nothing listed right now
+                  </h3>
+                  <p className="mx-auto max-w-md text-muted">
+                    The shop is empty at the moment. Check back soon or book a salon appointment
+                    in the meantime.
+                  </p>
+                </div>
               ) : (
                 filteredProducts.map((product, index) => (
                   <FadeIn key={product.id} delay={index * 0.06}>
@@ -184,8 +173,6 @@ export default function ShopClient({
                       product={product}
                       onQuickView={handleQuickView}
                       onAddToCart={handleAddToCart}
-                      onToggleWishlist={handleToggleWishlist}
-                      isWishlisted={wishlist.includes(product.id)}
                     />
                   </FadeIn>
                 ))
@@ -241,8 +228,6 @@ export default function ShopClient({
         isOpen={isQuickViewOpen}
         onClose={() => setIsQuickViewOpen(false)}
         onAddToCart={handleAddToCart}
-        onToggleWishlist={handleToggleWishlist}
-        isWishlisted={selectedProduct ? wishlist.includes(selectedProduct.id) : false}
       />
 
       <Cart />

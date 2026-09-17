@@ -18,10 +18,9 @@ interface SearchProduct {
 
 interface HeaderShellProps {
   products?: SearchProduct[];
-  wishlistItemCount?: number;
 }
 
-export default function HeaderShell({ products = [], wishlistItemCount = 0 }: HeaderShellProps) {
+export default function HeaderShell({ products = [] }: HeaderShellProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { openCart, itemCount } = useCart();
 
@@ -29,7 +28,6 @@ export default function HeaderShell({ products = [], wishlistItemCount = 0 }: He
     <>
       <Header
         cartItemCount={itemCount}
-        wishlistItemCount={wishlistItemCount}
         isSearchOpen={isSearchOpen}
         onSearchToggle={() => setIsSearchOpen((v) => !v)}
         onCartToggle={openCart}

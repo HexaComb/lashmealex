@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Star } from 'lucide-react';
 import { clsx } from 'clsx';
+import type { StoreVariant } from '../../convex/lib/catalogUtils';
 
 export interface ProductCardProduct {
   id: string;
@@ -14,16 +14,14 @@ export interface ProductCardProduct {
   image?: string;
   description: string;
   category: string;
-  rating?: number;
   inStock: boolean;
+  variants?: StoreVariant[];
 }
 
 interface ProductCardProps {
   product: ProductCardProduct;
   onQuickView?: (product: ProductCardProduct) => void;
   onAddToCart?: (product: ProductCardProduct) => void;
-  onToggleWishlist?: (productId: string) => void;
-  isWishlisted?: boolean;
   className?: string;
 }
 
@@ -31,8 +29,6 @@ export default function ProductCard({
   product,
   onQuickView,
   onAddToCart,
-  onToggleWishlist,
-  isWishlisted = false,
   className,
 }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -48,12 +44,6 @@ export default function ProductCard({
     e.preventDefault();
     e.stopPropagation();
     onQuickView?.(product);
-  };
-
-  const handleToggleWishlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onToggleWishlist?.(product.id);
   };
 
   const imageLabel = product.name.split(' ').slice(0, 2).join(' ');
@@ -143,21 +133,6 @@ export default function ProductCard({
             </span>
           )}
         </div>
-
-        <button
-          onClick={handleToggleWishlist}
-          className="focus-ring absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-foreground shadow-card transition-colors hover:text-pink-dark"
-          aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-        >
-          <Heart size={14} className={clsx(isWishlisted && 'fill-pink-dark text-pink-dark')} />
-        </button>
-
-        {product.rating && (
-          <div className="absolute bottom-4 left-4 inline-flex items-center gap-1 bg-white px-2 py-1 text-[10px] font-bold text-foreground">
-            <Star size={10} className="fill-foreground text-foreground" />
-            {product.rating}
-          </div>
-        )}
       </div>
 
       <div className="space-y-6 p-8">

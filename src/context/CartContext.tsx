@@ -22,10 +22,12 @@ import {
   type StartCartResult,
 } from '@/app/cart/actions';
 import { CART_STORAGE_KEY, type PendingCartItem } from '@/lib/cart-constants';
+import { dollarsToCents } from '@/lib/money';
 
 export interface CartItem {
   id: string;
   name: string;
+  /** Integer cents. Catalog callers pass dollars; addItem converts at the boundary. */
   price: number;
   quantity: number;
   image?: string;
@@ -126,39 +128,41 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addItem: CartContextValue['addItem'] = useCallback(
     async (product, quantity = 1) => {
       setCartError(null);
+      // Catalog prices are dollars; hydrated cart lines are cents. Normalize at the boundary.
+      const line = { ...product, price: dollarsToCents(product.price) };
 
       if (!cartId) {
-        pendingItemsRef.current.set(product.id, {
-          productId: product.id,
-          quantity: (pendingItemsRef.current.get(product.id)?.quantity ?? 0) + quantity,
-          snapshot: product,
+        pendingItemsRef.current.set(line.id, {
+          productId: line.id,
+          quantity: (pendingItemsRef.current.get(line.id)?.quantity ?? 0) + quantity,
+          snapshot: line,
         });
         setItems((prev) => {
-          const existing = prev.find((i) => i.id === product.id);
+          const existing = prev.find((i) => i.id === line.id);
           if (existing) {
             return prev.map((i) =>
-              i.id === product.id ? { ...i, quantity: i.quantity + quantity } : i,
+              i.id === line.id ? { ...i, quantity: i.quantity + quantity } : i,
             );
           }
-          return [...prev, { ...product, quantity }];
+          return [...prev, { ...line, quantity }];
         });
         setIsModalOpen(true);
         return;
       }
 
       setItems((prev) => {
-        const existing = prev.find((i) => i.id === product.id);
+        const existing = prev.find((i) => i.id === line.id);
         if (existing) {
           return prev.map((i) =>
-            i.id === product.id ? { ...i, quantity: i.quantity + quantity } : i,
+            i.id === line.id ? { ...i, quantity: i.quantity + quantity } : i,
           );
         }
-        return [...prev, { ...product, quantity }];
+        return [...prev, { ...line, quantity }];
       });
 
       const fd = new FormData();
       fd.set('cartId', cartId);
-      fd.set('productId', product.id);
+      fd.set('productId', line.id);
       fd.set('quantity', String(quantity));
       const result = await addCartItemAction(fd);
 

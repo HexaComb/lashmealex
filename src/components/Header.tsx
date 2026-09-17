@@ -4,14 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, ShoppingBag, Menu, X, Heart, User, Calendar } from 'lucide-react';
+import { Search, ShoppingBag, Menu, X, Calendar } from 'lucide-react';
 import { clsx } from 'clsx';
 
 import { motionEaseOut } from '@/lib/motion';
 
 interface HeaderProps {
   cartItemCount?: number;
-  wishlistItemCount?: number;
   onSearchToggle?: () => void;
   onCartToggle?: () => void;
   isSearchOpen?: boolean;
@@ -27,7 +26,6 @@ const navigationItems = [
 
 export default function Header({
   cartItemCount = 0,
-  wishlistItemCount = 0,
   onSearchToggle,
   onCartToggle,
   isSearchOpen = false,
@@ -129,15 +127,6 @@ export default function Header({
               <Search size={19} />
             </button>
 
-            <button className="relative p-2 text-foreground transition-colors hover:text-pink-dark focus-ring">
-              <Heart size={19} />
-              {wishlistItemCount > 0 && (
-                <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center bg-foreground text-[9px] font-bold text-white">
-                  {wishlistItemCount}
-                </span>
-              )}
-            </button>
-
             <button
               onClick={onCartToggle}
               className={clsx(
@@ -157,10 +146,6 @@ export default function Header({
                   {cartItemCount}
                 </motion.span>
               )}
-            </button>
-
-            <button className="hidden p-2 text-foreground transition-colors hover:text-pink-dark focus-ring sm:flex">
-              <User size={19} />
             </button>
 
             <a
