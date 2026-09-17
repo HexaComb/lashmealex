@@ -16,6 +16,9 @@ import {
   clearCart as clearCartLib,
   createCart,
   findCartByEmail,
+  freezeCartForCheckout,
+  bindCheckoutSnapshot,
+  releaseCheckoutLock,
   getCartItemQuantity,
   getCartWithItems,
   getProductInventory,
@@ -273,10 +276,12 @@ export async function createCheckoutSessionAction(cartId: string): Promise<Check
 
   try {
     const cart = await getCartWithItems(cartId, accessToken);
-    if (!cart || cart.status !== "active") {
+    if (!cart || (cart.status !== "active" && cart.status !== "checkout_pending")) {
       return { ok: false, error: "This cart is no longer active. Start a new cart to continue." };
     }
     if (cart.items.length === 0) return { ok: false, error: "Your cart is empty." };
+
+    const frozen = await freezeCartForCheckout(cartId, accessToken);
 
     const h = await headers();
     const host = h.get("host") ?? "localhost:3000";
@@ -285,37 +290,76 @@ export async function createCheckoutSessionAction(cartId: string): Promise<Check
 
     const stripe = new Stripe(getStripeSecretKey());
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer_email: cart.email,
-      line_items: cart.items.map((item) => {
-        const imageUrl = item.image
-          ? item.image.startsWith("http")
-            ? item.image
-            : `${origin}${item.image}`
-          : null;
-        return {
-          price_data: {
-            currency: "usd",
-            unit_amount: item.price,
-            product_data: {
-              name: item.variantName ? `${item.name} – ${item.variantName}` : item.name,
-              ...(imageUrl ? { images: [imageUrl] } : {}),
+    let session: Stripe.Checkout.Session;
+    try {
+      session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        customer_email: frozen.email,
+        line_items: frozen.lines.map((item) => {
+          const imageUrl = item.image
+            ? item.image.startsWith("http")
+              ? item.image
+              : `${origin}${item.image}`
+            : null;
+          return {
+            price_data: {
+              currency: "usd",
+              unit_amount: item.unitAmount,
+              product_data: {
+                name: item.variantName ? `${item.name} – ${item.variantName}` : item.name,
+                metadata: { productId: item.productId },
+                ...(imageUrl ? { images: [imageUrl] } : {}),
+              },
             },
-          },
-          quantity: item.quantity,
-        };
-      }),
-      metadata: { cartId },
-      success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/checkout/cancel`,
+            quantity: item.quantity,
+          };
+        }),
+        metadata: {
+          cartId,
+          amountTotal: String(frozen.amountTotal),
+        },
+        success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${origin}/checkout/cancel`,
+      });
+    } catch (error) {
+      await releaseCheckoutLock(cartId, accessToken);
+      throw error;
+    }
+
+    if (!session.url) {
+      await releaseCheckoutLock(cartId, accessToken);
+      return { ok: false, error: "Failed to create checkout session." };
+    }
+
+    await bindCheckoutSnapshot(cartId, accessToken, {
+      stripeSessionId: session.id,
+      amountTotal: frozen.amountTotal,
+      lines: frozen.lines.map((line) => ({
+        productId: line.productId,
+        quantity: line.quantity,
+        unitAmount: line.unitAmount,
+      })),
     });
 
-    if (!session.url) return { ok: false, error: "Failed to create checkout session." };
     return { ok: true, url: session.url };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("createCheckoutSessionAction error:", message);
     return { ok: false, error: "Checkout is temporarily unavailable. Please try again later." };
+  }
+}
+
+export async function releaseCheckoutLockAction(): Promise<void> {
+  const cookieStore = await cookies();
+  const value = cookieStore.get("lashmealex_cart_access")?.value;
+  const separator = value?.indexOf(".") ?? -1;
+  if (separator < 1) return;
+  const cartId = value!.slice(0, separator);
+  const token = value!.slice(separator + 1);
+  if (!cartId || !token) return;
+  try {
+    await releaseCheckoutLock(cartId, token);
+  } catch (error) {
+    console.error("releaseCheckoutLockAction error:", error);
   }
 }

@@ -167,3 +167,72 @@ test("cannot start over without the old cart capability", async () => {
     name: "New Customer",
   })).rejects.toThrow("Unauthorized cart access");
 });
+
+test("freezes an active cart for checkout and rejects further item edits", async () => {
+  const t = convexTest(schema, modules);
+  const now = Date.now();
+  const accessToken = "cart-capability";
+
+  await t.run(async (ctx) => {
+    await ctx.db.insert("carts", {
+      id: "cart_1",
+      accessTokenHash: await hashCartAccessToken(accessToken),
+      email: "customer@example.com",
+      phone: "5555555555",
+      name: "Customer",
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+      lastActiveAt: now,
+    });
+    await ctx.db.insert("products", {
+      id: "product_1",
+      parentProductId: "parent_1",
+      parentProductName: "Lash Shampoo",
+      slug: "lash-shampoo",
+      name: "Lash Shampoo",
+      category: "care",
+      price: 1200,
+      inventory: 10,
+      isFeatured: false,
+      isHero: false,
+      isActive: true,
+      sortOrder: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await ctx.db.insert("cartItems", {
+      id: "cart_item_1",
+      cartId: "cart_1",
+      productId: "product_1",
+      quantity: 2,
+      createdAt: now,
+      updatedAt: now,
+    });
+  });
+
+  const frozen = await t.mutation(api.carts.freezeCartForCheckout, { cartId: "cart_1", accessToken });
+  expect(frozen).toMatchObject({
+    email: "customer@example.com",
+    amountTotal: 2400,
+    lines: [{ productId: "product_1", quantity: 2, unitAmount: 1200 }],
+  });
+
+  await t.mutation(api.carts.bindCheckoutSnapshot, {
+    cartId: "cart_1",
+    accessToken,
+    stripeSessionId: "cs_1",
+    amountTotal: 2400,
+    lines: [{ productId: "product_1", quantity: 2, unitAmount: 1200 }],
+  });
+
+  await expect(t.mutation(api.carts.upsertCartItem, {
+    cartId: "cart_1",
+    productId: "product_1",
+    quantity: 1,
+    accessToken,
+  })).rejects.toThrow("Cart is no longer active.");
+
+  const cart = await t.query(api.carts.getCartWithItems, { cartId: "cart_1", accessToken });
+  expect(cart?.status).toBe("checkout_pending");
+});

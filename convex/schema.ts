@@ -24,6 +24,12 @@ export const productFields = {
   updatedAt: v.number(),
 };
 
+export const checkoutLineFields = {
+  productId: v.string(),
+  quantity: v.number(),
+  unitAmount: v.number(),
+};
+
 export const orderFields = {
   id: v.string(),
   stripeSessionId: v.optional(v.string()),
@@ -41,6 +47,32 @@ export const orderFields = {
   customerEmail: v.string(),
   customerName: v.optional(v.string()),
   notes: v.optional(v.string()),
+  confirmationEmailStatus: v.optional(v.string()),
+  confirmationEmailAttempts: v.optional(v.number()),
+  confirmationEmailLastError: v.optional(v.string()),
+  confirmationEmailSentAt: v.optional(v.number()),
+  confirmationEmailSendStartedAt: v.optional(v.number()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+};
+
+export const checkoutSnapshotFields = {
+  stripeSessionId: v.string(),
+  cartId: v.string(),
+  customerEmail: v.string(),
+  customerName: v.string(),
+  amountTotal: v.number(),
+  lines: v.array(v.object(checkoutLineFields)),
+  createdAt: v.number(),
+};
+
+export const paymentExceptionFields = {
+  stripeSessionId: v.string(),
+  eventId: v.string(),
+  cartId: v.optional(v.string()),
+  reason: v.string(),
+  amountTotal: v.optional(v.number()),
+  status: v.string(),
   createdAt: v.number(),
   updatedAt: v.number(),
 };
@@ -77,6 +109,7 @@ export const cartFields = {
   phone: v.string(),
   name: v.string(),
   status: v.string(),
+  checkoutSessionId: v.optional(v.string()),
   notes: v.optional(v.string()),
   createdAt: v.number(),
   updatedAt: v.number(),
@@ -119,6 +152,12 @@ export default defineSchema({
   stripeWebhookEvents: defineTable(stripeWebhookEventFields)
     .index("by_eventId", ["eventId"])
     .index("by_sessionId", ["sessionId"]),
+  checkoutSnapshots: defineTable(checkoutSnapshotFields)
+    .index("by_stripeSessionId", ["stripeSessionId"])
+    .index("by_cartId", ["cartId"]),
+  paymentExceptions: defineTable(paymentExceptionFields)
+    .index("by_stripeSessionId", ["stripeSessionId"])
+    .index("by_status", ["status"]),
   carts: defineTable(cartFields)
     .index("by_externalId", ["id"])
     .index("by_email", ["email"]),

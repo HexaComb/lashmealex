@@ -125,6 +125,36 @@ export async function replaceCartItems(
   await fetchMutation(api.carts.replaceCartItems, { cartId, incoming, accessToken });
 }
 
+export async function freezeCartForCheckout(cartId: string, accessToken: string) {
+  return fetchMutation(api.carts.freezeCartForCheckout, { cartId, accessToken });
+}
+
+export async function bindCheckoutSnapshot(
+  cartId: string,
+  accessToken: string,
+  input: {
+    stripeSessionId: string;
+    amountTotal: number;
+    lines: Array<{ productId: string; quantity: number; unitAmount: number }>;
+  },
+) {
+  await fetchMutation(api.carts.bindCheckoutSnapshot, {
+    cartId,
+    accessToken,
+    stripeSessionId: input.stripeSessionId,
+    amountTotal: input.amountTotal,
+    lines: input.lines,
+  });
+}
+
+export async function releaseCheckoutLock(
+  cartId: string,
+  accessToken: string,
+  stripeSessionId?: string,
+) {
+  await fetchMutation(api.carts.releaseCheckoutLock, { cartId, accessToken, stripeSessionId });
+}
+
 export async function deleteCart(cartId: string) {
   await fetchMutation(api.carts.deleteCart, { cartId, adminSecret: getAdminSecret() });
 }

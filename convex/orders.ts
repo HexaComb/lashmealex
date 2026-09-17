@@ -1,6 +1,15 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
 import { assertAdminSecret } from "./lib/admin";
+import {
+  checkoutLinesEqual,
+  checkoutLinesTotal,
+  isPaidFailureOutcome,
+  type CheckoutLine,
+  type PaidFailureOutcome,
+} from "./lib/checkout";
 
 const fulfillmentStatusValidator = v.union(
   v.literal("received"),
@@ -14,6 +23,15 @@ const paymentStatusValidator = v.union(
   v.literal("paid"),
   v.literal("cancelled"),
 );
+
+const checkoutLineValidator = v.object({
+  productId: v.string(),
+  quantity: v.number(),
+  unitAmount: v.number(),
+});
+
+const EMAIL_SEND_STALE_MS = 5 * 60 * 1000;
+const EMAIL_RETRY_MAX = 8;
 
 export const getOrderByStripeSessionId = query({
   args: { stripeSessionId: v.string() },
@@ -52,21 +70,152 @@ export const getPublicOrderStatus = query({
   },
 });
 
+function toOrderEmailResult(order: Doc<"orders">) {
+  return {
+    id: order.id,
+    statusToken: order.statusToken ?? "",
+    fulfillmentStatus: order.fulfillmentStatus,
+    customerEmail: order.customerEmail,
+    customerName: order.customerName ?? null,
+    confirmationEmailStatus: order.confirmationEmailStatus ?? "pending",
+  };
+}
+
+async function getOrderBySession(ctx: MutationCtx, sessionId: string) {
+  return ctx.db
+    .query("orders")
+    .withIndex("by_stripeSessionId", (q) => q.eq("stripeSessionId", sessionId))
+    .first();
+}
+
+async function getOrderByExternalId(ctx: MutationCtx, orderId: string) {
+  return ctx.db
+    .query("orders")
+    .withIndex("by_externalId", (q) => q.eq("id", orderId))
+    .first();
+}
+
+async function recordPaidFailure(
+  ctx: MutationCtx,
+  args: {
+    eventId: string;
+    sessionId: string;
+    cartId?: string;
+    reason: string;
+    amountTotal?: number;
+  },
+) {
+  const now = Date.now();
+  const existing = await ctx.db
+    .query("paymentExceptions")
+    .withIndex("by_stripeSessionId", (q) => q.eq("stripeSessionId", args.sessionId))
+    .first();
+  if (existing) {
+    await ctx.db.patch(existing._id, {
+      eventId: args.eventId,
+      cartId: args.cartId,
+      reason: args.reason,
+      amountTotal: args.amountTotal,
+      status: "open",
+      updatedAt: now,
+    });
+  } else {
+    await ctx.db.insert("paymentExceptions", {
+      stripeSessionId: args.sessionId,
+      eventId: args.eventId,
+      cartId: args.cartId,
+      reason: args.reason,
+      amountTotal: args.amountTotal,
+      status: "open",
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+}
+
+async function resolvePaymentException(ctx: MutationCtx, sessionId: string) {
+  const existing = await ctx.db
+    .query("paymentExceptions")
+    .withIndex("by_stripeSessionId", (q) => q.eq("stripeSessionId", sessionId))
+    .first();
+  if (existing && existing.status !== "resolved") {
+    await ctx.db.patch(existing._id, { status: "resolved", updatedAt: Date.now() });
+  }
+}
+
+async function releaseCheckoutLockForSession(ctx: MutationCtx, cartId: string | undefined, sessionId: string) {
+  if (!cartId) return;
+  const cart = await ctx.db
+    .query("carts")
+    .withIndex("by_externalId", (q) => q.eq("id", cartId))
+    .first();
+  if (!cart || cart.status !== "checkout_pending") return;
+  if (cart.checkoutSessionId && cart.checkoutSessionId !== sessionId) return;
+  const now = Date.now();
+  await ctx.db.patch(cart._id, {
+    status: "active",
+    checkoutSessionId: undefined,
+    updatedAt: now,
+    lastActiveAt: now,
+  });
+}
+
+async function claimConfirmationEmail(ctx: MutationCtx, orderId: string) {
+  const order = await getOrderByExternalId(ctx, orderId);
+  if (!order || !order.statusToken) return null;
+  if (order.confirmationEmailStatus === "sent") return null;
+  const now = Date.now();
+  if (
+    order.confirmationEmailStatus === "sending" &&
+    order.confirmationEmailSendStartedAt &&
+    now - order.confirmationEmailSendStartedAt < EMAIL_SEND_STALE_MS
+  ) {
+    return null;
+  }
+  await ctx.db.patch(order._id, {
+    confirmationEmailStatus: "sending",
+    confirmationEmailSendStartedAt: now,
+    updatedAt: now,
+  });
+  return {
+    customerEmail: order.customerEmail,
+    customerName: order.customerName ?? null,
+    fulfillmentStatus: order.fulfillmentStatus,
+    statusToken: order.statusToken,
+  };
+}
+
+/**
+ * Stripe-verified Next.js webhook only. Requires ADMIN_INTERNAL_SECRET so this
+ * cannot be invoked from the public Convex URL to insert paid orders.
+ */
 export const processStripeCheckoutEvent = mutation({
   args: {
+    adminSecret: v.string(),
     eventId: v.string(),
     eventType: v.string(),
     sessionId: v.string(),
     cartId: v.optional(v.string()),
     paymentStatus: v.string(),
     shouldCreatePaidOrder: v.boolean(),
+    amountTotal: v.optional(v.number()),
+    lineItems: v.optional(v.array(checkoutLineValidator)),
   },
   handler: async (ctx, args) => {
+    assertAdminSecret(args.adminSecret);
+
     const priorEvent = await ctx.db
       .query("stripeWebhookEvents")
       .withIndex("by_eventId", (q) => q.eq("eventId", args.eventId))
       .first();
-    if (priorEvent) return { outcome: "duplicate_event", order: null };
+    if (priorEvent) {
+      const existingOrder = await getOrderBySession(ctx, args.sessionId);
+      return {
+        ack: !isPaidFailureOutcome(priorEvent.outcome),
+        outcome: "duplicate_event" as const,
+        order: existingOrder ? toOrderEmailResult(existingOrder) : null,
+      };
+    }
 
     const now = Date.now();
     const recordEvent = async (outcome: string) => {
@@ -81,70 +230,102 @@ export const processStripeCheckoutEvent = mutation({
       });
     };
 
+    const failPaid = async (outcome: PaidFailureOutcome) => {
+      await recordPaidFailure(ctx, {
+        eventId: args.eventId,
+        sessionId: args.sessionId,
+        cartId: args.cartId,
+        reason: outcome,
+        amountTotal: args.amountTotal,
+      });
+      return { ack: false as const, outcome, order: null };
+    };
+
     if (!args.shouldCreatePaidOrder) {
       const outcome = args.eventType === "checkout.session.async_payment_failed"
         ? "payment_failed"
         : args.eventType === "checkout.session.expired"
           ? "expired"
           : "awaiting_payment";
+      if (outcome === "expired" || outcome === "payment_failed") {
+        await releaseCheckoutLockForSession(ctx, args.cartId, args.sessionId);
+      }
       await recordEvent(outcome);
-      return { outcome, order: null };
+      return { ack: true as const, outcome, order: null };
     }
 
     if (!args.cartId) {
-      await recordEvent("missing_cart_id");
-      return { outcome: "missing_cart_id", order: null };
+      return await failPaid("missing_cart_id");
     }
 
-    const existingOrder = await ctx.db
-      .query("orders")
-      .withIndex("by_stripeSessionId", (q) => q.eq("stripeSessionId", args.sessionId))
-      .first();
+    const existingOrder = await getOrderBySession(ctx, args.sessionId);
     if (existingOrder) {
       await recordEvent("duplicate_session");
-      return { outcome: "duplicate_session", order: null };
+      await resolvePaymentException(ctx, args.sessionId);
+      return {
+        ack: true as const,
+        outcome: "duplicate_session" as const,
+        order: toOrderEmailResult(existingOrder),
+      };
     }
 
-    const cart = await ctx.db
-      .query("carts")
-      .withIndex("by_externalId", (q) => q.eq("id", args.cartId!))
+    const snapshot = await ctx.db
+      .query("checkoutSnapshots")
+      .withIndex("by_stripeSessionId", (q) => q.eq("stripeSessionId", args.sessionId))
       .first();
-    if (!cart) {
-      await recordEvent("cart_not_found");
-      return { outcome: "cart_not_found", order: null };
+    if (!snapshot) {
+      const cart = await ctx.db
+        .query("carts")
+        .withIndex("by_externalId", (q) => q.eq("id", args.cartId!))
+        .first();
+      if (!cart) {
+        return await failPaid("cart_not_found");
+      }
+      return await failPaid("snapshot_not_found");
     }
 
-    const itemRows = await ctx.db
-      .query("cartItems")
-      .withIndex("by_cartId", (q) => q.eq("cartId", args.cartId!))
-      .collect();
+    const stripeLines: CheckoutLine[] = args.lineItems ?? [];
+    const snapshotLines: CheckoutLine[] = snapshot.lines.map((line) => ({
+      productId: line.productId,
+      quantity: line.quantity,
+      unitAmount: line.unitAmount,
+    }));
+    const stripeTotal = args.amountTotal;
+    const snapshotTotal = snapshot.amountTotal;
+    const lineTotal = checkoutLinesTotal(snapshotLines);
 
-    const lines = [];
-    for (const item of itemRows) {
+    if (
+      stripeTotal == null ||
+      stripeTotal !== snapshotTotal ||
+      stripeTotal !== lineTotal ||
+      checkoutLinesTotal(stripeLines) !== snapshotTotal
+    ) {
+      return await failPaid("amount_mismatch");
+    }
+    if (!checkoutLinesEqual(stripeLines, snapshotLines)) {
+      return await failPaid("line_mismatch");
+    }
+
+    const pricedLines = [];
+    for (const line of snapshotLines) {
       const product = await ctx.db
         .query("products")
-        .withIndex("by_externalId", (q) => q.eq("id", item.productId))
+        .withIndex("by_externalId", (q) => q.eq("id", line.productId))
         .first();
-      if (!product) continue;
-      lines.push({
-        product,
-        productId: item.productId,
-        quantity: item.quantity,
-        price: product.price,
-      });
+      if (!product) {
+        return await failPaid("product_missing");
+      }
+      pricedLines.push({ product, line });
     }
 
-    const unavailableLine = lines.find(
-      (line) => !line.product.isActive || line.product.inventory < line.quantity,
+    const unavailableLine = pricedLines.find(
+      ({ product, line }) => !product.isActive || product.inventory < line.quantity,
     );
     if (unavailableLine) {
-      await recordEvent("inventory_unavailable");
-      return { outcome: "inventory_unavailable", order: null };
+      return await failPaid("inventory_unavailable");
     }
 
-    const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
     const orderId = crypto.randomUUID();
-
     const statusToken = crypto.randomUUID();
     await ctx.db.insert("orders", {
       id: orderId,
@@ -156,17 +337,19 @@ export const processStripeCheckoutEvent = mutation({
       status: "paid",
       fulfillmentStatus: "received",
       statusToken,
-      subtotal,
-      total: subtotal,
-      customerEmail: cart.email,
-      customerName: cart.name,
+      subtotal: snapshotTotal,
+      total: snapshotTotal,
+      customerEmail: snapshot.customerEmail,
+      customerName: snapshot.customerName,
+      confirmationEmailStatus: "pending",
+      confirmationEmailAttempts: 0,
       createdAt: now,
       updatedAt: now,
     });
 
-    for (const line of lines) {
-      await ctx.db.patch(line.product._id, {
-        inventory: line.product.inventory - line.quantity,
+    for (const { product, line } of pricedLines) {
+      await ctx.db.patch(product._id, {
+        inventory: product.inventory - line.quantity,
         updatedAt: now,
       });
       await ctx.db.insert("orderItems", {
@@ -174,7 +357,7 @@ export const processStripeCheckoutEvent = mutation({
         orderId,
         productId: line.productId,
         quantity: line.quantity,
-        price: line.price,
+        price: line.unitAmount,
       });
     }
 
@@ -184,19 +367,121 @@ export const processStripeCheckoutEvent = mutation({
       createdAt: now,
     });
 
-    await ctx.db.patch(cart._id, { status: "converted", updatedAt: now, lastActiveAt: now });
+    const cart = await ctx.db
+      .query("carts")
+      .withIndex("by_externalId", (q) => q.eq("id", snapshot.cartId))
+      .first();
+    if (cart) {
+      await ctx.db.patch(cart._id, { status: "converted", updatedAt: now, lastActiveAt: now });
+    }
+
     await recordEvent("order_created");
+    await resolvePaymentException(ctx, args.sessionId);
+    await ctx.scheduler.runAfter(15_000, internal.orderEmails.sendOrderConfirmation, { orderId });
 
     return {
-      outcome: "order_created",
+      ack: true as const,
+      outcome: "order_created" as const,
       order: {
         id: orderId,
         statusToken,
         fulfillmentStatus: "received" as const,
-        customerEmail: cart.email,
-        customerName: cart.name,
+        customerEmail: snapshot.customerEmail,
+        customerName: snapshot.customerName,
+        confirmationEmailStatus: "pending" as const,
       },
     };
+  },
+});
+
+export const claimConfirmationEmailSend = mutation({
+  args: { adminSecret: v.string(), orderId: v.string() },
+  handler: async (ctx, args) => {
+    assertAdminSecret(args.adminSecret);
+    return await claimConfirmationEmail(ctx, args.orderId);
+  },
+});
+
+export const markConfirmationEmailSent = mutation({
+  args: { adminSecret: v.string(), orderId: v.string() },
+  handler: async (ctx, args) => {
+    assertAdminSecret(args.adminSecret);
+    const order = await getOrderByExternalId(ctx, args.orderId);
+    if (!order) return;
+    const now = Date.now();
+    await ctx.db.patch(order._id, {
+      confirmationEmailStatus: "sent",
+      confirmationEmailSentAt: now,
+      confirmationEmailLastError: undefined,
+      updatedAt: now,
+    });
+  },
+});
+
+export const markConfirmationEmailFailed = mutation({
+  args: { adminSecret: v.string(), orderId: v.string(), error: v.string() },
+  handler: async (ctx, args) => {
+    assertAdminSecret(args.adminSecret);
+    const order = await getOrderByExternalId(ctx, args.orderId);
+    if (!order) return;
+    const attempts = (order.confirmationEmailAttempts ?? 0) + 1;
+    const now = Date.now();
+    await ctx.db.patch(order._id, {
+      confirmationEmailStatus: attempts >= EMAIL_RETRY_MAX ? "failed" : "pending",
+      confirmationEmailAttempts: attempts,
+      confirmationEmailLastError: args.error,
+      updatedAt: now,
+    });
+    if (attempts < EMAIL_RETRY_MAX) {
+      const delay = Math.min(60_000 * 2 ** Math.max(attempts - 1, 0), 60 * 60 * 1000);
+      await ctx.scheduler.runAfter(delay, internal.orderEmails.sendOrderConfirmation, {
+        orderId: args.orderId,
+      });
+    }
+  },
+});
+
+export const claimConfirmationEmailJob = internalMutation({
+  args: { orderId: v.string() },
+  handler: async (ctx, args) => {
+    return await claimConfirmationEmail(ctx, args.orderId);
+  },
+});
+
+export const markConfirmationEmailSentJob = internalMutation({
+  args: { orderId: v.string() },
+  handler: async (ctx, args) => {
+    const order = await getOrderByExternalId(ctx, args.orderId);
+    if (!order) return;
+    const now = Date.now();
+    await ctx.db.patch(order._id, {
+      confirmationEmailStatus: "sent",
+      confirmationEmailSentAt: now,
+      confirmationEmailLastError: undefined,
+      updatedAt: now,
+    });
+  },
+});
+
+export const markConfirmationEmailRetryJob = internalMutation({
+  args: { orderId: v.string(), error: v.string() },
+  handler: async (ctx, args) => {
+    const order = await getOrderByExternalId(ctx, args.orderId);
+    if (!order || order.confirmationEmailStatus === "sent") return;
+    const attempts = (order.confirmationEmailAttempts ?? 0) + 1;
+    const now = Date.now();
+    await ctx.db.patch(order._id, {
+      confirmationEmailStatus: attempts >= EMAIL_RETRY_MAX ? "failed" : "pending",
+      confirmationEmailAttempts: attempts,
+      confirmationEmailLastError: args.error,
+      updatedAt: now,
+    });
+    if (attempts < EMAIL_RETRY_MAX) {
+      const delay = Math.min(60_000 * 2 ** Math.max(attempts - 1, 0), 60 * 60 * 1000);
+      await ctx.scheduler.runAfter(delay, internal.orderEmails.sendOrderConfirmation, {
+        orderId: args.orderId,
+      });
+    }
   },
 });
 
