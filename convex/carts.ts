@@ -218,6 +218,9 @@ export const startOverCart = mutation({
   },
   handler: async (ctx, args) => {
     const existingCart = await requireCartAccess(ctx, args.cartId, args.accessToken);
+    if (existingCart.status === "checkout_pending") {
+      throw new Error("Finish or cancel checkout before replacing this cart.");
+    }
     const existingItems = await ctx.db
       .query("cartItems")
       .withIndex("by_cartId", (q) => q.eq("cartId", args.cartId))
@@ -240,6 +243,129 @@ export const startOverCart = mutation({
       lastActiveAt: now,
     });
     return id;
+  },
+});
+
+const checkoutLineValidator = v.object({
+  productId: v.string(),
+  quantity: v.number(),
+  unitAmount: v.number(),
+});
+
+export const freezeCartForCheckout = mutation({
+  args: { cartId: v.string(), accessToken: v.string() },
+  handler: async (ctx, args) => {
+    const cart = await requireCartAccess(ctx, args.cartId, args.accessToken);
+    if (cart.status === "converted") {
+      throw new Error("This cart is no longer active.");
+    }
+    if (cart.status !== "active" && cart.status !== "checkout_pending") {
+      throw new Error("This cart is no longer active.");
+    }
+
+    const itemRows = await ctx.db
+      .query("cartItems")
+      .withIndex("by_cartId", (q) => q.eq("cartId", args.cartId))
+      .collect();
+
+    const lines = [];
+    for (const item of itemRows) {
+      const product = await ctx.db
+        .query("products")
+        .withIndex("by_externalId", (q) => q.eq("id", item.productId))
+        .first();
+      if (!product || !product.isActive) {
+        throw new Error("An item in your cart is no longer available.");
+      }
+      if (product.inventory < item.quantity) {
+        throw new Error(`Only ${product.inventory} left in stock for ${product.name}.`);
+      }
+      lines.push({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitAmount: product.price,
+        name: product.parentProductName,
+        variantName: product.variantName ?? null,
+        image: await getProductImageUrl(ctx, product),
+      });
+    }
+    if (lines.length === 0) {
+      throw new Error("Your cart is empty.");
+    }
+
+    const amountTotal = lines.reduce((sum, line) => sum + line.unitAmount * line.quantity, 0);
+    const now = Date.now();
+    await ctx.db.patch(cart._id, {
+      status: "checkout_pending",
+      updatedAt: now,
+      lastActiveAt: now,
+    });
+
+    return {
+      email: cart.email,
+      name: cart.name,
+      amountTotal,
+      lines,
+    };
+  },
+});
+
+export const bindCheckoutSnapshot = mutation({
+  args: {
+    cartId: v.string(),
+    accessToken: v.string(),
+    stripeSessionId: v.string(),
+    amountTotal: v.number(),
+    lines: v.array(checkoutLineValidator),
+  },
+  handler: async (ctx, args) => {
+    const cart = await requireCartAccess(ctx, args.cartId, args.accessToken);
+    if (cart.status !== "checkout_pending") {
+      throw new Error("This cart is not frozen for checkout.");
+    }
+    const existing = await ctx.db
+      .query("checkoutSnapshots")
+      .withIndex("by_stripeSessionId", (q) => q.eq("stripeSessionId", args.stripeSessionId))
+      .first();
+    if (!existing) {
+      await ctx.db.insert("checkoutSnapshots", {
+        stripeSessionId: args.stripeSessionId,
+        cartId: args.cartId,
+        customerEmail: cart.email,
+        customerName: cart.name,
+        amountTotal: args.amountTotal,
+        lines: args.lines,
+        createdAt: Date.now(),
+      });
+    }
+    const now = Date.now();
+    await ctx.db.patch(cart._id, {
+      checkoutSessionId: args.stripeSessionId,
+      updatedAt: now,
+      lastActiveAt: now,
+    });
+  },
+});
+
+export const releaseCheckoutLock = mutation({
+  args: {
+    cartId: v.string(),
+    accessToken: v.string(),
+    stripeSessionId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const cart = await requireCartAccess(ctx, args.cartId, args.accessToken);
+    if (cart.status !== "checkout_pending") return;
+    if (args.stripeSessionId && cart.checkoutSessionId && cart.checkoutSessionId !== args.stripeSessionId) {
+      return;
+    }
+    const now = Date.now();
+    await ctx.db.patch(cart._id, {
+      status: "active",
+      checkoutSessionId: undefined,
+      updatedAt: now,
+      lastActiveAt: now,
+    });
   },
 });
 

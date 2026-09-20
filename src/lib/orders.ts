@@ -12,9 +12,34 @@ export async function processStripeCheckoutEvent(input: {
   cartId: string | undefined;
   paymentStatus: string;
   shouldCreatePaidOrder: boolean;
+  amountTotal?: number;
+  lineItems?: Array<{ productId: string; quantity: number; unitAmount: number }>;
 }) {
   return fetchMutation(api.orders.processStripeCheckoutEvent, {
+    adminSecret: getAdminSecret(),
     ...input,
+  });
+}
+
+export async function claimConfirmationEmailSend(orderId: string) {
+  return fetchMutation(api.orders.claimConfirmationEmailSend, {
+    adminSecret: getAdminSecret(),
+    orderId,
+  });
+}
+
+export async function markConfirmationEmailSent(orderId: string) {
+  await fetchMutation(api.orders.markConfirmationEmailSent, {
+    adminSecret: getAdminSecret(),
+    orderId,
+  });
+}
+
+export async function markConfirmationEmailFailed(orderId: string, error: string) {
+  await fetchMutation(api.orders.markConfirmationEmailFailed, {
+    adminSecret: getAdminSecret(),
+    orderId,
+    error,
   });
 }
 

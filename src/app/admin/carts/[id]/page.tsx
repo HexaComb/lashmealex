@@ -165,6 +165,7 @@ export default async function AdminCartDetailPage({
                     <AdminFieldLabel>Status</AdminFieldLabel>
                     <select name="status" defaultValue={cart.status} className={adminInputClass()}>
                       <option value="active">Active</option>
+                      <option value="checkout_pending">Checkout pending</option>
                       <option value="abandoned">Abandoned</option>
                       <option value="converted">Converted</option>
                     </select>

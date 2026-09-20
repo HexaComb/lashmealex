@@ -4,6 +4,9 @@ const mocks = vi.hoisted(() => ({
   createSession: vi.fn(),
   findCartByEmail: vi.fn(),
   getCartWithItems: vi.fn(),
+  freezeCartForCheckout: vi.fn(),
+  bindCheckoutSnapshot: vi.fn(),
+  releaseCheckoutLock: vi.fn(),
   rotateCartAccessTokenForVerifiedShopper: vi.fn(),
   startOverCart: vi.fn(),
   cookieSet: vi.fn(),
@@ -22,6 +25,9 @@ vi.mock("@/lib/cart", () => ({
   createCart: vi.fn(),
   findCartByEmail: mocks.findCartByEmail,
   getCartItemQuantity: vi.fn(),
+  freezeCartForCheckout: mocks.freezeCartForCheckout,
+  bindCheckoutSnapshot: mocks.bindCheckoutSnapshot,
+  releaseCheckoutLock: mocks.releaseCheckoutLock,
   getCartWithItems: mocks.getCartWithItems,
   getProductInventory: vi.fn(),
   mergeCartItems: vi.fn(),
@@ -55,18 +61,43 @@ test("creates a Stripe checkout session only for the cart held by the capability
       image: "/lash-set.jpg",
     }],
   });
-  mocks.createSession.mockResolvedValue({ url: "https://checkout.stripe.test/session" });
+  mocks.freezeCartForCheckout.mockResolvedValue({
+    email: "customer@example.com",
+    name: "Customer",
+    amountTotal: 3600,
+    lines: [{
+      productId: "product_1",
+      name: "Lash Set",
+      variantName: "Classic",
+      unitAmount: 1800,
+      quantity: 2,
+      image: "/lash-set.jpg",
+    }],
+  });
+  mocks.createSession.mockResolvedValue({ id: "cs_1", url: "https://checkout.stripe.test/session" });
 
   await expect(createCheckoutSessionAction("cart_1")).resolves.toEqual({
     ok: true,
     url: "https://checkout.stripe.test/session",
   });
   expect(mocks.getCartWithItems).toHaveBeenCalledWith("cart_1", "cart-capability");
+  expect(mocks.freezeCartForCheckout).toHaveBeenCalledWith("cart_1", "cart-capability");
   expect(mocks.createSession).toHaveBeenCalledWith(expect.objectContaining({
     customer_email: "customer@example.com",
-    metadata: { cartId: "cart_1" },
-    line_items: [expect.objectContaining({ quantity: 2 })],
+    metadata: { cartId: "cart_1", amountTotal: "3600" },
+    line_items: [expect.objectContaining({
+      quantity: 2,
+      price_data: expect.objectContaining({
+        unit_amount: 1800,
+        product_data: expect.objectContaining({ metadata: { productId: "product_1" } }),
+      }),
+    })],
   }));
+  expect(mocks.bindCheckoutSnapshot).toHaveBeenCalledWith("cart_1", "cart-capability", {
+    stripeSessionId: "cs_1",
+    amountTotal: 3600,
+    lines: [{ productId: "product_1", quantity: 2, unitAmount: 1800 }],
+  });
 });
 
 test("does not expose checkout configuration errors to customers", async () => {
@@ -78,6 +109,19 @@ test("does not expose checkout configuration errors to customers", async () => {
       name: "Lash Set",
       variantName: "Classic",
       price: 1800,
+      quantity: 1,
+      image: null,
+    }],
+  });
+  mocks.freezeCartForCheckout.mockResolvedValue({
+    email: "customer@example.com",
+    name: "Customer",
+    amountTotal: 1800,
+    lines: [{
+      productId: "product_1",
+      name: "Lash Set",
+      variantName: "Classic",
+      unitAmount: 1800,
       quantity: 1,
       image: null,
     }],

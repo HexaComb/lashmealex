@@ -1,6 +1,6 @@
 export const CART_STORAGE_KEY = "lashmealex_cart_id";
 
-export const CART_STATUSES = ["active", "converted", "abandoned"] as const;
+export const CART_STATUSES = ["active", "checkout_pending", "converted", "abandoned"] as const;
 export type CartStatus = (typeof CART_STATUSES)[number];
 
 export const ABANDONED_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
