@@ -5,6 +5,7 @@ import ProductCard, { type ProductCardProduct } from './ProductCard';
 import QuickViewModal from './QuickViewModal';
 import { FadeIn } from './LoadingStates';
 import { useCart } from '@/context/CartContext';
+import { resolveSellableCartVariant, toCartLine } from '@/lib/storefront-product';
 
 interface ProductGridWithQuickViewProps {
   products: ProductCardProduct[];
@@ -20,29 +21,16 @@ export default function ProductGridWithQuickView({
   const { addItem } = useCart();
   const [selectedProduct, setSelectedProduct] = useState<ProductCardProduct | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
-  const [wishlist, setWishlist] = useState<string[]>([]);
 
   const handleQuickView = (product: ProductCardProduct) => {
     setSelectedProduct(product);
     setIsQuickViewOpen(true);
   };
 
-  const handleToggleWishlist = (productId: string) => {
-    setWishlist((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
-    );
-  };
-
   const handleAddToCart = async (product: ProductCardProduct, quantity = 1) => {
-    await addItem({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      category: product.category,
-    }, quantity);
+    const variant = resolveSellableCartVariant(product);
+    if (!variant?.inStock) return;
+    await addItem(toCartLine(product, variant), quantity);
     setIsQuickViewOpen(false);
   };
 
@@ -61,8 +49,6 @@ export default function ProductGridWithQuickView({
               product={product}
               onQuickView={handleQuickView}
               onAddToCart={handleAddToCart}
-              onToggleWishlist={handleToggleWishlist}
-              isWishlisted={wishlist.includes(product.id)}
             />
           </FadeIn>
         ))}
@@ -73,10 +59,6 @@ export default function ProductGridWithQuickView({
         isOpen={isQuickViewOpen}
         onClose={() => setIsQuickViewOpen(false)}
         onAddToCart={handleAddToCart}
-        onToggleWishlist={handleToggleWishlist}
-        isWishlisted={
-          selectedProduct ? wishlist.includes(selectedProduct.id) : false
-        }
       />
     </>
   );

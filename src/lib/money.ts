@@ -9,6 +9,16 @@ export function centsToDollars(cents: number): number {
 }
 
 /**
+ * Converts a storefront dollar amount into integer cents for the client cart.
+ *
+ * @param dollars The catalog price shown in dollars.
+ * @returns The integer cent amount used by cart lines and checkout.
+ */
+export function dollarsToCents(dollars: number): number {
+  return Math.round(dollars * 100);
+}
+
+/**
  * Formats a cent amount for owner-facing reporting surfaces.
  *
  * @param cents The stored integer cent amount.

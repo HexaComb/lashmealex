@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Heart, Star, ChevronLeft, ChevronRight, Share2, Check } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Share2, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { LoadingButton } from './LoadingStates';
 import type { ProductCardProduct } from './ProductCard';
@@ -14,7 +14,6 @@ interface Product extends ProductCardProduct {
   images?: string[];
   features?: string[];
   specifications?: Record<string, string>;
-  reviewCount?: number;
   variants?: StoreVariant[];
 }
 
@@ -23,8 +22,6 @@ interface QuickViewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddToCart: (product: Product, quantity: number) => Promise<void> | void;
-  onToggleWishlist: (productId: string) => void;
-  isWishlisted?: boolean;
 }
 
 export default function QuickViewModal({
@@ -32,8 +29,6 @@ export default function QuickViewModal({
   isOpen,
   onClose,
   onAddToCart,
-  onToggleWishlist,
-  isWishlisted = false
 }: QuickViewModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState(product?.variants?.[0]?.id ?? '');
@@ -199,13 +194,6 @@ export default function QuickViewModal({
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <button
-                          onClick={() => onToggleWishlist(product.id)}
-                          className="focus-ring rounded-full border border-line bg-white p-2.5 text-foreground transition-all hover:scale-110 hover:text-pink-dark shadow-sm"
-                          aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                        >
-                          <Heart size={16} className={clsx('transition-colors', isWishlisted && 'fill-pink-dark text-pink-dark')} />
-                        </button>
-                        <button
                           onClick={onClose}
                           className="focus-ring rounded-full border border-line bg-white p-2.5 text-foreground transition-all hover:bg-foreground hover:text-background shadow-sm"
                           aria-label="Close quick view"
@@ -214,20 +202,6 @@ export default function QuickViewModal({
                         </button>
                       </div>
                     </div>
-
-                    {/* Rating */}
-                    {product.rating && (
-                      <div className="flex items-center gap-3 mt-2">
-                        <div className="flex items-center gap-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} size={13} className={clsx(i < Math.floor(product.rating!) ? 'fill-yellow-400 text-yellow-400' : 'text-line')} />
-                          ))}
-                        </div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
-                          {product.rating} ({product.reviewCount || 0} reviews)
-                        </span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Price */}

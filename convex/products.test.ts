@@ -79,6 +79,8 @@ test("lists only active catalog variants and groups them by parent product", asy
       { id: "classic", variantName: "Classic" },
     ],
   });
+  expect(products[0]).not.toHaveProperty("rating");
+  expect(products[0]).not.toHaveProperty("reviewCount");
   expect(JSON.stringify(products)).not.toContain("Archived Set");
 });
 
