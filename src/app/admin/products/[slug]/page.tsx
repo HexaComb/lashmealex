@@ -239,11 +239,11 @@ export default async function AdminProductPage({ params }: AdminProductPageProps
                         <div className="mt-0.5 flex flex-col gap-1.5">
                           <AdminButton type="submit">Save photo</AdminButton>
                           <ConfirmSubmitButton
-                            message={`Delete option "${variant.variantName ?? variant.name}"?`}
+                            message={`Hide option "${variant.variantName ?? variant.name}" from the shop? Past orders keep this line.`}
                             formAction={deleteVariantAction}
                             className={textDangerButtonClass}
                           >
-                            Delete option
+                            Hide option
                           </ConfirmSubmitButton>
                         </div>
                       </form>
@@ -311,10 +311,10 @@ export default async function AdminProductPage({ params }: AdminProductPageProps
         </details>
 
         <section className="flex flex-col gap-4 border-t border-red-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <div><h2 className="text-base font-semibold text-foreground">Website and deletion</h2><p className="mt-1 text-sm text-muted">Feature this product on the home page or remove it permanently.</p></div>
+          <div><h2 className="text-base font-semibold text-foreground">Website and visibility</h2><p className="mt-1 text-sm text-muted">Feature this product on the home page, or hide it from the shop. Hidden products stay in past orders.</p></div>
           <div className="flex flex-wrap gap-3">
             <form action={setHeroProductAction}><input type="hidden" name="parentProductId" value={product.id} /><input type="hidden" name="parentSlug" value={product.slug} /><AdminButton type="submit" disabled={product.isHero} tone={product.isHero ? 'primary' : 'secondary'}>{product.isHero ? 'Featured on home page' : 'Feature on home page'}</AdminButton></form>
-            <form action={deleteProductAction}><input type="hidden" name="parentProductId" value={product.id} /><input type="hidden" name="parentSlug" value={product.slug} /><ConfirmSubmitButton message={`Delete "${product.name}" and all ${product.variantCount} option(s)? This cannot be undone.`} className={dangerButtonClass}>Delete product</ConfirmSubmitButton></form>
+            <form action={deleteProductAction}><input type="hidden" name="parentProductId" value={product.id} /><input type="hidden" name="parentSlug" value={product.slug} /><ConfirmSubmitButton message={`Hide "${product.name}" and all ${product.variantCount} option(s) from the shop? Sales history is kept.`} className={dangerButtonClass}>Hide from shop</ConfirmSubmitButton></form>
           </div>
         </section>
       </AdminPageShell>
