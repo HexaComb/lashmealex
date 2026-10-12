@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Shop Professional Lash Supplies',
   description:
-    'Browse professional lash extensions, aftercare, adhesives, and beauty tools from Lashmealex.',
+    'Browse professional lash extensions, aftercare, adhesives, and beauty tools from Cheri Cosmetics.',
   alternates: {
     canonical: '/shop',
   },

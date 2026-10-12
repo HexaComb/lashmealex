@@ -1,4 +1,4 @@
-export const CART_STORAGE_KEY = "lashmealex_cart_id";
+export { CART_STORAGE_KEY, CART_STORAGE_KEY_LEGACY } from "./brand-keys";
 
 export const CART_STATUSES = ["active", "checkout_pending", "converted", "abandoned"] as const;
 export type CartStatus = (typeof CART_STATUSES)[number];

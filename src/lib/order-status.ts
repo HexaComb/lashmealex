@@ -14,7 +14,7 @@ export const orderFulfillmentCopy: Record<OrderFulfillmentStatus, { label: strin
   },
   working_on_it: {
     label: "Working on it",
-    description: "Your order is being prepared by the Lashmealex team.",
+    description: "Your order is being prepared by the Cheri Cosmetics team.",
   },
   ready_for_pickup: {
     label: "Ready for pickup",
@@ -22,7 +22,7 @@ export const orderFulfillmentCopy: Record<OrderFulfillmentStatus, { label: strin
   },
   picked_up: {
     label: "Picked up",
-    description: "Your order has been collected. Thank you for shopping Lashmealex.",
+    description: "Your order has been collected. Thank you for shopping Cheri Cosmetics.",
   },
 };
 

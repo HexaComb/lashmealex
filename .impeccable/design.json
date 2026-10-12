@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "generatedAt": "2026-05-22T00:00:00.000Z",
-  "title": "Design System: Lashmealex",
+  "title": "Design System: Cheri Cosmetics",
   "extensions": {
     "colorMeta": {
       "warm-parchment": {
@@ -115,7 +115,7 @@
       "kind": "chip",
       "refersTo": "label",
       "description": "Eyebrow / section kicker above display type.",
-      "html": "<p class=\"ds-label\">Lashmealex</p>",
+      "html": "<p class=\"ds-label\">Cheri Cosmetics</p>",
       "css": ".ds-label { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4em; color: #b95174; margin: 0; }"
     },
     {
@@ -139,13 +139,13 @@
       "kind": "nav",
       "refersTo": "nav-header",
       "description": "Sticky top bar with ink icons.",
-      "html": "<nav class=\"ds-nav\"><span class=\"ds-nav-brand\">Lashmealex</span><a class=\"ds-nav-link\" href=\"#\">Shop</a></nav>",
+      "html": "<nav class=\"ds-nav\"><span class=\"ds-nav-brand\">Cheri Cosmetics</span><a class=\"ds-nav-link\" href=\"#\">Shop</a></nav>",
       "css": ".ds-nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; background: #faf9f6; border-bottom: 1px solid #e2e2e2; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; } .ds-nav-brand { font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #121212; } .ds-nav-link { font-size: 14px; color: #121212; text-decoration: none; } .ds-nav-link:hover { color: #b95174; }"
     }
   ],
   "narrative": {
     "northStar": "The Curated Tray",
-    "overview": "Lashmealex reads like a salon backbar translated into pixels: warm parchment grounds, ink-black structure, and rose accents that appear where a practitioner would point, not as wallpaper. Layout favors editorial grids and 1px borders over soft card stacks.",
+    "overview": "Cheri Cosmetics reads like a salon backbar translated into pixels: warm parchment grounds, ink-black structure, and rose accents that appear where a practitioner would point, not as wallpaper. Layout favors editorial grids and 1px borders over soft card stacks.",
     "keyCharacteristics": [
       "Light-only, warm neutral canvas with ink structure",
       "Zero default border-radius on UI chrome",

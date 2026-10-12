@@ -74,10 +74,10 @@ export default function Header({
 
             <Link href="/" className="flex items-center gap-4">
               <div className="flex h-10 w-10 items-center justify-center bg-foreground text-xs font-bold uppercase tracking-[0.2em] text-white">
-                LM
+                CC
               </div>
               <div className="hidden sm:block">
-                <p className="font-display text-3xl leading-none text-foreground tracking-tighter">lashmealex</p>
+                <p className="font-display text-3xl leading-none text-foreground tracking-tighter">Cheri Cosmetics</p>
               </div>
               {/* Blinking eyelash */}
               <div className="flex items-center" aria-hidden="true">

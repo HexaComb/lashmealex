@@ -44,7 +44,7 @@ export default function AdminHeader({ logoutAction, productName }: AdminHeaderPr
           </button>
 
           <Link href="/admin" className="flex flex-col">
-            <p className="text-sm font-semibold leading-none tracking-tight text-foreground">Lashmealex</p>
+            <p className="text-sm font-semibold leading-none tracking-tight text-foreground">Cheri Cosmetics</p>
             <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.28em] text-pink-dark">Admin</p>
           </Link>
 

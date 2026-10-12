@@ -28,7 +28,7 @@ export default async function OrderStatusPage({ params }: { params: Promise<{ st
   return (
     <main className="min-h-screen bg-background px-5 py-10 sm:px-8 sm:py-16">
       <div className="mx-auto max-w-2xl">
-        <p className="text-[10px] font-bold uppercase tracking-[0.32em] text-pink-dark">Lashmealex order</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.32em] text-pink-dark">Cheri Cosmetics order</p>
         <h1 className="mt-3 font-display text-5xl font-medium tracking-[-0.02em] text-foreground sm:text-6xl">Pickup status</h1>
         <p className="mt-4 max-w-xl text-sm leading-6 text-muted">Your order is in the hands of our Fresno salon team. We’ll email you whenever this status changes.</p>
 
@@ -61,7 +61,7 @@ export default async function OrderStatusPage({ params }: { params: Promise<{ st
           </ol>
         </section>
 
-        <p className="mt-8 text-xs leading-5 text-muted">Questions about pickup? Reply to your order email and the Lashmealex team will help.</p>
+        <p className="mt-8 text-xs leading-5 text-muted">Questions about pickup? Reply to your order email and the Cheri Cosmetics team will help.</p>
       </div>
     </main>
   );

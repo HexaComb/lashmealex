@@ -9,8 +9,13 @@ import {
   type ReactNode,
 } from 'react';
 
-const CONSENT_KEY = 'lashmealex_cookie_consent';
-const ANALYTICS_CONSENT_KEY = 'lashmealex_analytics_consent';
+import {
+  ANALYTICS_CONSENT_STORAGE_KEY,
+  ANALYTICS_CONSENT_STORAGE_KEY_LEGACY,
+  CONSENT_STORAGE_KEY,
+  CONSENT_STORAGE_KEY_LEGACY,
+} from '@/lib/brand-keys';
+import { readAndMigrateStorage, writeStorageAndClearLegacy } from '@/lib/migrate-local-storage';
 
 type ConsentStatus = 'pending' | 'accepted' | 'declined';
 
@@ -26,26 +31,41 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<ConsentStatus>('pending');
 
   useEffect(() => {
-    const saved = localStorage.getItem(CONSENT_KEY);
+    const saved = readAndMigrateStorage(localStorage, CONSENT_STORAGE_KEY, CONSENT_STORAGE_KEY_LEGACY);
     const storedStatus = saved === 'accepted' || saved === 'declined' ? saved : null;
     if (!storedStatus) return;
 
     const timer = window.setTimeout(() => {
-      localStorage.setItem(ANALYTICS_CONSENT_KEY, storedStatus === 'accepted' ? 'granted' : 'denied');
+      writeStorageAndClearLegacy(
+        localStorage,
+        ANALYTICS_CONSENT_STORAGE_KEY,
+        ANALYTICS_CONSENT_STORAGE_KEY_LEGACY,
+        storedStatus === 'accepted' ? 'granted' : 'denied',
+      );
       setStatus(storedStatus);
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
   const accept = useCallback(() => {
-    localStorage.setItem(CONSENT_KEY, 'accepted');
-    localStorage.setItem(ANALYTICS_CONSENT_KEY, 'granted');
+    writeStorageAndClearLegacy(localStorage, CONSENT_STORAGE_KEY, CONSENT_STORAGE_KEY_LEGACY, 'accepted');
+    writeStorageAndClearLegacy(
+      localStorage,
+      ANALYTICS_CONSENT_STORAGE_KEY,
+      ANALYTICS_CONSENT_STORAGE_KEY_LEGACY,
+      'granted',
+    );
     setStatus('accepted');
   }, []);
 
   const decline = useCallback(() => {
-    localStorage.setItem(CONSENT_KEY, 'declined');
-    localStorage.setItem(ANALYTICS_CONSENT_KEY, 'denied');
+    writeStorageAndClearLegacy(localStorage, CONSENT_STORAGE_KEY, CONSENT_STORAGE_KEY_LEGACY, 'declined');
+    writeStorageAndClearLegacy(
+      localStorage,
+      ANALYTICS_CONSENT_STORAGE_KEY,
+      ANALYTICS_CONSENT_STORAGE_KEY_LEGACY,
+      'denied',
+    );
     setStatus('declined');
   }, []);
 

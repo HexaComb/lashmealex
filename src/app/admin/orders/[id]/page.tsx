@@ -60,7 +60,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
 
   const { order, items } = orderResult;
   const fulfillmentStatus = isOrderFulfillmentStatus(order.fulfillmentStatus) ? order.fulfillmentStatus : 'received';
-  const mailto = `mailto:${order.customerEmail}?subject=${encodeURIComponent(`Lashmealex order ${order.id}`)}`;
+  const mailto = `mailto:${order.customerEmail}?subject=${encodeURIComponent(`Cheri Cosmetics order ${order.id}`)}`;
 
   return (
     <div className="min-h-screen bg-background">

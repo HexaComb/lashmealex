@@ -8,16 +8,16 @@ import {getHeroProduct, listStoreProducts} from "@/lib/catalog";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Lashmealex — Lashes, Aftercare & Beauty Essentials",
+  title: "Cheri Cosmetics — Lashes, Aftercare & Beauty Essentials",
   description:
-    "Shop professional-grade lashes, adhesives, aftercare, and beauty tools from Lashmealex. Curated by a Fresno lash artist. Same-day pickup in Fresno, CA.",
+    "Shop professional-grade lashes, adhesives, aftercare, and beauty tools from Cheri Cosmetics. Curated by a Fresno lash artist. Same-day pickup in Fresno, CA.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Lashmealex — Lashes, Aftercare & Beauty Essentials",
+    title: "Cheri Cosmetics — Lashes, Aftercare & Beauty Essentials",
     description:
-      "Shop professional-grade lashes, adhesives, aftercare, and beauty tools from Lashmealex. Curated by a Fresno lash artist. Same-day pickup in Fresno, CA.",
+      "Shop professional-grade lashes, adhesives, aftercare, and beauty tools from Cheri Cosmetics. Curated by a Fresno lash artist. Same-day pickup in Fresno, CA.",
     url: "/",
     type: "website",
   },
@@ -37,7 +37,7 @@ export default async function Home() {
           <div className="grid min-h-[20.5rem] border border-foreground lg:min-h-[20.5rem] lg:grid-cols-[1.15fr_0.85fr]">
             <div className="flex flex-col border-b border-foreground bg-white px-6 py-10 sm:px-8 lg:border-b-0 lg:border-r lg:px-10 lg:py-10">
               <p className="m-0 text-[10px] font-bold uppercase tracking-[0.4em] text-pink-dark">
-                Lashmealex
+                Cheri Cosmetics
               </p>
               <h1 className="mt-6 font-display text-[clamp(3rem,6vw,5.5rem)] font-medium leading-none tracking-[-0.02em] text-foreground text-balance">
                 Your Lash <br />
@@ -79,7 +79,7 @@ export default async function Home() {
                 ) : (
                   <img
                     src="/assets/IMG_5806.jpeg"
-                    alt="Lashmealex lash collection"
+                    alt="Cheri Cosmetics lash collection"
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                 )}
@@ -113,7 +113,7 @@ export default async function Home() {
             <FadeIn>
               <div className="mb-16">
                 <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-pink-dark">
-                  Why Lashmealex
+                  Why Cheri Cosmetics
                 </p>
                 <h2 className="mt-8 font-display text-[3rem] font-medium leading-none tracking-tighter text-foreground sm:text-[4rem]">
                   Built for Artists.
@@ -160,8 +160,8 @@ export default async function Home() {
             {[
               { src: "/assets/IMG_5801.jpeg", alt: "Velvet lash collection" },
               { src: "/assets/IMG_5852.jpeg", alt: "Lash artist at work" },
-              { src: "/assets/IMG_5796.jpeg", alt: "Lashmealex cashmere collection" },
-              { src: "/assets/IMG_2844.jpeg", alt: "Lashmealex packaging" },
+              { src: "/assets/IMG_5796.jpeg", alt: "Cheri Cosmetics cashmere collection" },
+              { src: "/assets/IMG_2844.jpeg", alt: "Cheri Cosmetics packaging" },
             ].map((img, i) => (
               <div key={img.src} className={`relative h-72 flex-1 overflow-hidden sm:h-96 ${i > 0 ? "border-l border-foreground" : ""}`}>
                 <img
@@ -242,7 +242,7 @@ export default async function Home() {
                 <div className="relative hidden overflow-hidden border-l border-foreground lg:block">
                   <img
                     src="/assets/IMG_5796.jpeg"
-                    alt="Lashmealex lash tray"
+                    alt="Cheri Cosmetics lash tray"
                     className="h-full w-full object-cover object-center"
                   />
                 </div>
@@ -255,7 +255,7 @@ export default async function Home() {
       <footer className="border-t border-foreground bg-[#faf7f5] px-6 py-16 sm:px-12 lg:px-20">
         <div className="grid gap-12 lg:grid-cols-5">
           <div className="lg:col-span-1">
-            <p className="font-display text-3xl tracking-tighter text-foreground">lashmealex</p>
+            <p className="font-display text-3xl tracking-tighter text-foreground">Cheri Cosmetics</p>
             <p className="mt-4 text-sm leading-relaxed text-muted">
               Professional lashes and beauty essentials, curated in Fresno, CA.
             </p>
@@ -322,7 +322,7 @@ export default async function Home() {
           </div>
         </div>
         <div className="mt-16 border-t border-line pt-8">
-          <p className="text-xs text-muted">&copy; {new Date().getFullYear()} Lashmealex. All rights reserved.</p>
+          <p className="text-xs text-muted">&copy; {new Date().getFullYear()} Cheri Cosmetics. All rights reserved.</p>
         </div>
       </footer>
     </div>

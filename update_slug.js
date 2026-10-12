@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: \`\${medusaProduct.title} | Lashmealex Shop\`,
+    title: \`\${medusaProduct.title} | Cheri Cosmetics\`,
     description: medusaProduct.description || 'Premium lash products',
     openGraph: {
       title: medusaProduct.title,

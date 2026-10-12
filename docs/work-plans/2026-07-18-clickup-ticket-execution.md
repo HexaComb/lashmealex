@@ -1,8 +1,8 @@
-# Lashmealex ClickUp Ticket Execution Plan
+# Cheri Cosmetics ClickUp Ticket Execution Plan
 
 ## Purpose and status snapshot
 
-This plan inventories the complete Lashmealex ClickUp list as reviewed on 2026-07-18. It separates work that is already completed from the remaining delivery sequence, and requires one ticket, one branch, and one pull request for every implementation or standalone documentation change.
+This plan inventories the complete Cheri Cosmetics ClickUp list as reviewed on 2026-07-18. It separates work that is already completed from the remaining delivery sequence, and requires one ticket, one branch, and one pull request for every implementation or standalone documentation change.
 
 | Status | Tickets |
 | --- | ---: |

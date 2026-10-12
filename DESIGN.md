@@ -1,5 +1,5 @@
 ---
-name: Lashmealex
+name: Cheri Cosmetics
 description: Warm artisan luxury for a Fresno lash-artist shop — editorial type, sharp grids, rose accents.
 colors:
   warm-parchment: "#faf9f6"
@@ -75,13 +75,13 @@ components:
     padding: "16px 24px"
 ---
 
-# Design System: Lashmealex
+# Design System: Cheri Cosmetics
 
 ## 1. Overview
 
 **Creative North Star: "The Curated Tray"**
 
-Lashmealex reads like a salon backbar translated into pixels: warm parchment grounds, ink-black structure, and rose accents that appear where a practitioner would point (labels, hovers, key CTAs), not as wallpaper. Layout favors editorial grids and 1px borders over soft card stacks. Typography does the luxury work (Cormorant display + Jakarta body); corners stay square except for pills and avatars.
+Cheri Cosmetics reads like a salon backbar translated into pixels: warm parchment grounds, ink-black structure, and rose accents that appear where a practitioner would point (labels, hovers, key CTAs), not as wallpaper. Layout favors editorial grids and 1px borders over soft card stacks. Typography does the luxury work (Cormorant display + Jakarta body); corners stay square except for pills and avatars.
 
 The system explicitly rejects cutesy kawaii beauty, generic Shopify themes, and AI-slop decoration (glass cards, gradient text, side-stripe callouts). Density is calm but efficient: product surfaces optimize for variant clarity and pickup confidence.
 
@@ -142,7 +142,7 @@ Warm parchment and ink carry most surfaces; rose and rose-gold are artisan highl
 - **Headline** (500, 2.25rem / 36px, line-height ~1.1): Section titles, featured product names in side panels.
 - **Title** (700, 14px, uppercase, letter-spacing 0.3em): Subheads, modal titles, strong UI labels.
 - **Body** (400, 14px, line-height ~1.6, max ~65–75ch): Descriptions, cart copy, admin table text.
-- **Label** (700, 10px, uppercase, letter-spacing 0.4em): Eyebrows ("Lashmealex", "Featured"), stat columns, filter chips.
+- **Label** (700, 10px, uppercase, letter-spacing 0.4em): Eyebrows ("Cheri Cosmetics", "Featured"), stat columns, filter chips.
 
 ### Named Rules
 
