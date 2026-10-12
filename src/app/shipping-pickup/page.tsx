@@ -19,7 +19,7 @@ const hours = [
 
 export const metadata: Metadata = {
   title: 'Shipping & Pickup',
-  description: 'Lashmealex is pickup-only. Find Fresno salon hours, directions, and pickup guidance before ordering.',
+  description: 'Cheri Cosmetics is pickup-only. Find Fresno salon hours, directions, and pickup guidance before ordering.',
   alternates: { canonical: '/shipping-pickup' },
 };
 
@@ -36,7 +36,7 @@ export default function ShippingPickupPage() {
                 Pickup, made clear.
               </h1>
               <p className="mt-6 max-w-2xl text-sm leading-7 text-muted text-pretty">
-                Lashmealex orders are collected at our Fresno salon. Shipping is not offered at checkout, so you&apos;ll always know your order is headed to one local pickup point.
+                Cheri Cosmetics orders are collected at our Fresno salon. Shipping is not offered at checkout, so you&apos;ll always know your order is headed to one local pickup point.
               </p>
               <ol className="mt-10 divide-y divide-line border-y border-foreground">
                 {[

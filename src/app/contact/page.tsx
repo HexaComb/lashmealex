@@ -9,8 +9,8 @@ const directionsUrl = 'https://www.google.com/maps/dir/?api=1&destination=5130+N
 const instagramUrl = 'https://www.instagram.com/lashmealex';
 
 export const metadata: Metadata = {
-  title: 'Contact Lashmealex',
-  description: 'Contact Lashmealex, visit the Fresno salon, or find directions for appointment and pickup questions.',
+  title: 'Contact Cheri Cosmetics',
+  description: 'Contact Cheri Cosmetics, visit the Fresno salon, or find directions for appointment and pickup questions.',
   alternates: { canonical: '/contact' },
 };
 
@@ -20,7 +20,7 @@ export default function ContactPage() {
       <HeaderShell />
       <main className="px-6 py-14 sm:px-12 lg:px-20 lg:py-20">
         <div className="mx-auto max-w-6xl">
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-pink-dark">Lashmealex in Fresno</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-pink-dark">Cheri Cosmetics in Fresno</p>
           <div className="mt-4 grid border border-foreground bg-white lg:grid-cols-[1.1fr_0.9fr]">
             <section className="px-6 py-10 sm:px-10 lg:px-12 lg:py-14">
               <h1 className="max-w-xl font-display text-5xl font-medium leading-none tracking-[-0.02em] text-foreground text-balance sm:text-6xl">

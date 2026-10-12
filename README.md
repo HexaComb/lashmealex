@@ -1,4 +1,4 @@
-# Lashmealex
+# Cheri Cosmetics
 
 Next.js storefront and owner admin, deployed on **Vercel**, with **Convex** for data and product image storage.
 

@@ -19,13 +19,13 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://lashmealex.com"),
   title: {
-    default: "Lashmealex Shop",
-    template: "%s | Lashmealex Shop",
+    default: "Cheri Cosmetics",
+    template: "%s | Cheri Cosmetics",
   },
   description:
-    "Shop professional lashes, adhesives, aftercare, and beauty tools from Lashmealex. Curated by a Fresno lash artist.",
+    "Shop professional lashes, adhesives, aftercare, and beauty tools from Cheri Cosmetics. Curated by a Fresno lash artist.",
   keywords: [
-    "lashmealex",
+    "Cheri Cosmetics",
     "lash supplies",
     "lash extensions",
     "lash adhesive",
@@ -36,8 +36,8 @@ export const metadata: Metadata = {
     "eyelash salon Fresno",
   ],
   openGraph: {
-    siteName: "Lashmealex Shop",
-    title: "Lashmealex Shop",
+    siteName: "Cheri Cosmetics",
+    title: "Cheri Cosmetics",
     description:
       "Shop professional lashes, adhesives, aftercare, and beauty tools. Curated by a Fresno lash artist.",
     type: "website",
@@ -47,15 +47,15 @@ export const metadata: Metadata = {
         url: "/assets/IMG_5806.jpeg",
         width: 1200,
         height: 630,
-        alt: "Lashmealex — Professional Lash Products",
+        alt: "Cheri Cosmetics — Professional Lash Products",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Lashmealex Shop",
+    title: "Cheri Cosmetics",
     description:
-      "Professional lashes, adhesives, aftercare, and beauty essentials from Lashmealex.",
+      "Professional lashes, adhesives, aftercare, and beauty essentials from Cheri Cosmetics.",
     images: ["/assets/IMG_5806.jpeg"],
   },
   alternates: {

@@ -24,6 +24,8 @@ export const sendOrderConfirmation = internalAction({
       if (!siteUrl) throw new Error("NEXT_PUBLIC_SITE_URL is not configured");
 
       const statusUrl = new URL(`/orders/${job.statusToken}`, siteUrl).toString();
+      const trimmedFrom = from.trim();
+      const fromAddress = trimmedFrom.includes("<") ? trimmedFrom : `Cheri Cosmetics <${trimmedFrom}>`;
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -31,9 +33,9 @@ export const sendOrderConfirmation = internalAction({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from,
+          from: fromAddress,
           to: [job.customerEmail],
-          subject: "Your Lashmealex order: Received",
+          subject: "Your Cheri Cosmetics order: Received",
           text: `Your order is confirmed and queued for preparation.\n\nTrack your order: ${statusUrl}`,
           html: `<p>Your order is confirmed and queued for preparation.</p><p><a href="${statusUrl}">Track your order</a></p>`,
         }),

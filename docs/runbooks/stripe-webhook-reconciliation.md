@@ -1,6 +1,6 @@
 # Stripe Webhook Reconciliation
 
-Use this procedure when a Stripe Checkout payment does not appear in the Lashmealex admin order list or Stripe reports repeated delivery failures.
+Use this procedure when a Stripe Checkout payment does not appear in the Cheri Cosmetics admin order list or Stripe reports repeated delivery failures.
 
 1. In Stripe Dashboard, find the Checkout session and verify its payment status, `amount_total`, line items, and the relevant event IDs.
 2. In Convex Dashboard, inspect:

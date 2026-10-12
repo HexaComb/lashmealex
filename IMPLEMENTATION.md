@@ -9,7 +9,7 @@
 
 ## What We Know
 
-- Business name: `lashmealex`
+- Business name: Cheri Cosmetics
 - Existing site: `https://lashmealex.glossgenius.com/`
 - Existing site role: remains the primary booking destination
 - Business type: local beauty / lash salon in Fresno, CA
@@ -468,7 +468,7 @@ Exit criteria:
 - Venmo works
 - Product pages are indexable and fast
 - Booking traffic is preserved through clear handoff to GlossGenius
-- The site feels like a premium extension of the existing lashmealex brand
+- The site feels like a premium extension of the existing Cheri Cosmetics brand
 
 ## Recommendation Summary
 

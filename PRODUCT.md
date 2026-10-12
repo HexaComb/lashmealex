@@ -15,7 +15,7 @@ Both shop on phones and desktops, often between clients or during short breaks. 
 
 ## Product Purpose
 
-Lashmealex is the online shop for a Fresno lash artist's curated catalog: lash variants, adhesives, aftercare, and beauty tools. The site must make discovery and purchase straightforward (shop, product detail, cart, checkout) while reinforcing that every SKU is salon-vetted. Success means completed pickups and repeat orders, with admin surfaces that keep catalog, carts, and fulfillment reliable without stealing focus from the customer experience.
+Cheri Cosmetics is the online shop for a Fresno lash artist's curated catalog: lash variants, adhesives, aftercare, and beauty tools. The site must make discovery and purchase straightforward (shop, product detail, cart, checkout) while reinforcing that every SKU is salon-vetted. Success means completed pickups and repeat orders, with admin surfaces that keep catalog, carts, and fulfillment reliable without stealing focus from the customer experience.
 
 ## Brand Personality
 

@@ -1,6 +1,6 @@
-# Lashmealex Project Context
+# Cheri Cosmetics Project Context
 
-Lashmealex is a SEO-optimized e-commerce storefront and owner admin for a beauty salon. The web surface is a **Next.js app deployed on Vercel**, backed by **Convex** for data, server functions, and product image storage.
+Cheri Cosmetics is a SEO-optimized e-commerce storefront and owner admin for a beauty salon. The web surface is a **Next.js app deployed on Vercel**, backed by **Convex** for data, server functions, and product image storage.
 
 ## Project Overview
 

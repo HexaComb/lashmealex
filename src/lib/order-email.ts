@@ -17,6 +17,12 @@ function escapeHtml(value: string): string {
   })[character] ?? character);
 }
 
+function brandedFromAddress(from: string): string {
+  const trimmed = from.trim();
+  if (trimmed.includes("<")) return trimmed;
+  return `Cheri Cosmetics <${trimmed}>`;
+}
+
 /**
  * Sends a customer-facing order-progress email with the private status link.
  * Resend credentials and a verified sender are intentionally required at runtime.
@@ -45,7 +51,7 @@ export async function sendOrderStatusEmail(input: {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Your Lashmealex order: ${copy.label}</title>
+  <title>Your Cheri Cosmetics order: ${copy.label}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#faf9f6;font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif;color:#121212;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#faf9f6;">
@@ -62,7 +68,7 @@ export async function sendOrderStatusEmail(input: {
                     LM
                   </td>
                   <td style="padding-left:14px;font-size:28px;font-weight:400;letter-spacing:-0.04em;color:#121212;font-family:'Cormorant Garamond','Georgia',serif;">
-                    lashmealex
+                    Cheri Cosmetics
                   </td>
                 </tr>
               </table>
@@ -110,7 +116,7 @@ export async function sendOrderStatusEmail(input: {
           <tr>
             <td align="center" style="padding-top:32px;">
               <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#626262;font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif;">
-                Lashmealex &mdash; Professional Lash Products
+                Cheri Cosmetics &mdash; Professional Lash Products
               </p>
               <p style="margin:0 0 4px;font-size:12px;line-height:1.5;color:#626262;font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif;">
                 Fresno, California
@@ -132,9 +138,9 @@ export async function sendOrderStatusEmail(input: {
 
   const resend = new Resend(apiKey);
   const { error } = await resend.emails.send({
-    from,
+    from: brandedFromAddress(from),
     to: [input.customerEmail],
-    subject: `Your Lashmealex order: ${copy.label}`,
+    subject: `Your Cheri Cosmetics order: ${copy.label}`,
     text: `${copy.label}\n\n${copy.description}\n\nTrack your order: ${statusUrl}`,
     html,
   });

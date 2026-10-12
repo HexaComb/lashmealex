@@ -77,7 +77,7 @@ export default function Header({
                 LM
               </div>
               <div className="hidden sm:block">
-                <p className="font-display text-3xl leading-none text-foreground tracking-tighter">lashmealex</p>
+                <p className="font-display text-3xl leading-none text-foreground tracking-tighter">Cheri Cosmetics</p>
               </div>
               {/* Blinking eyelash */}
               <div className="flex items-center" aria-hidden="true">

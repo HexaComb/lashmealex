@@ -4,7 +4,7 @@ This file defines how people and AI agents should work in this repository. Follo
 
 ## Project at a glance
 
-Lashmealex is a Next.js 16 e-commerce storefront and owner admin deployed on Vercel.
+Cheri Cosmetics is a Next.js 16 e-commerce storefront and owner admin deployed on Vercel.
 
 - `src/app/` — App Router pages, server actions, and API routes
 - `src/components/` — shared React UI

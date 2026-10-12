@@ -111,7 +111,7 @@ export default function ProductCard({
             <div className="flex h-full items-center justify-center py-5">
               <div className="w-full text-center">
                 <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-muted">
-                  Lashmealex
+                  Cheri Cosmetics
                 </p>
                 <span className="mt-2 block font-display text-4xl font-medium leading-none tracking-tighter text-foreground">
                   {imageLabel}
