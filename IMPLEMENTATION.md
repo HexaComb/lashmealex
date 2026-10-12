@@ -1,4 +1,4 @@
-# lashmealex Implementation Plan
+# Cheri Cosmetics Implementation Plan
 
 ## Document Status
 

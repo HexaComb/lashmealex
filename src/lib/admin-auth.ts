@@ -3,11 +3,42 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-const ADMIN_COOKIE_NAME = "lashmealex_admin_session";
-const LOGIN_ATTEMPT_COOKIE_NAME = "lashmealex_admin_login_attempts";
+import {
+  ADMIN_LOGIN_ATTEMPT_COOKIE,
+  ADMIN_LOGIN_ATTEMPT_COOKIE_LEGACY,
+  ADMIN_SESSION_COOKIE,
+  ADMIN_SESSION_COOKIE_LEGACY,
+} from "@/lib/brand-keys";
+import {
+  deleteCookiePair,
+  readAndMigrateCookie,
+  writeCookieAndClearLegacy,
+  type CookieWriteOptions,
+} from "@/lib/migrate-cookie";
+
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 12;
 const MAX_LOGIN_ATTEMPTS = 8;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
+function sessionCookieOptions(): CookieWriteOptions {
+  return {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: SESSION_MAX_AGE_SECONDS,
+  };
+}
+
+function attemptCookieOptions(maxAgeSeconds: number): CookieWriteOptions {
+  return {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/admin",
+    maxAge: maxAgeSeconds,
+  };
+}
 
 export type AdminLoginResult = "ok" | "invalid" | "locked" | "unconfigured";
 
@@ -130,18 +161,18 @@ async function writeAttemptCookie(secret: string, state: LoginAttemptState) {
   const payload = `v1.${state.count}.${state.resetAt}`;
   const mac = await signPayload(secret, payload);
   const cookieStore = await cookies();
-  cookieStore.set(LOGIN_ATTEMPT_COOKIE_NAME, `${payload}.${mac}`, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/admin",
-    maxAge: Math.max(60, Math.ceil((state.resetAt - Date.now()) / 1000)),
-  });
+  writeCookieAndClearLegacy(
+    cookieStore,
+    ADMIN_LOGIN_ATTEMPT_COOKIE,
+    ADMIN_LOGIN_ATTEMPT_COOKIE_LEGACY,
+    `${payload}.${mac}`,
+    attemptCookieOptions(Math.max(60, Math.ceil((state.resetAt - Date.now()) / 1000))),
+  );
 }
 
 async function clearAttemptCookie() {
   const cookieStore = await cookies();
-  cookieStore.delete({ name: LOGIN_ATTEMPT_COOKIE_NAME, path: "/admin" });
+  deleteCookiePair(cookieStore, ADMIN_LOGIN_ATTEMPT_COOKIE, ADMIN_LOGIN_ATTEMPT_COOKIE_LEGACY, "/admin");
 }
 
 /**
@@ -158,7 +189,12 @@ export async function isAdminAuthenticated(): Promise<boolean> {
   }
 
   const cookieStore = await cookies();
-  const token = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
+  const token = readAndMigrateCookie(
+    cookieStore,
+    ADMIN_SESSION_COOKIE,
+    ADMIN_SESSION_COOKIE_LEGACY,
+    sessionCookieOptions(),
+  );
 
   if (!token) {
     return false;
@@ -197,7 +233,12 @@ export async function loginAdmin(passwordInput: string): Promise<AdminLoginResul
   const cookieStore = await cookies();
   const attemptState = await readAttemptState(
     secret,
-    cookieStore.get(LOGIN_ATTEMPT_COOKIE_NAME)?.value,
+    readAndMigrateCookie(
+      cookieStore,
+      ADMIN_LOGIN_ATTEMPT_COOKIE,
+      ADMIN_LOGIN_ATTEMPT_COOKIE_LEGACY,
+      attemptCookieOptions(Math.max(60, Math.ceil(LOGIN_WINDOW_MS / 1000))),
+    ),
   );
 
   if (attemptState.count >= MAX_LOGIN_ATTEMPTS) {
@@ -217,13 +258,13 @@ export async function loginAdmin(passwordInput: string): Promise<AdminLoginResul
   }
 
   await clearAttemptCookie();
-  cookieStore.set(ADMIN_COOKIE_NAME, await createSessionToken(password, secret), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: SESSION_MAX_AGE_SECONDS,
-  });
+  writeCookieAndClearLegacy(
+    cookieStore,
+    ADMIN_SESSION_COOKIE,
+    ADMIN_SESSION_COOKIE_LEGACY,
+    await createSessionToken(password, secret),
+    sessionCookieOptions(),
+  );
 
   return "ok";
 }
@@ -233,5 +274,5 @@ export async function loginAdmin(passwordInput: string): Promise<AdminLoginResul
  */
 export async function logoutAdmin() {
   const cookieStore = await cookies();
-  cookieStore.delete(ADMIN_COOKIE_NAME);
+  deleteCookiePair(cookieStore, ADMIN_SESSION_COOKIE, ADMIN_SESSION_COOKIE_LEGACY, "/");
 }

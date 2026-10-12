@@ -6,6 +6,7 @@ import {
   orderFulfillmentCopy,
   type OrderFulfillmentStatus,
 } from "./order-status";
+import { SITE } from "./site";
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, (character) => ({
@@ -65,7 +66,7 @@ export async function sendOrderStatusEmail(input: {
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="background-color:#121212;width:48px;height:48px;text-align:center;vertical-align:middle;font-size:13px;font-weight:700;letter-spacing:0.2em;color:#ffffff;font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif;">
-                    LM
+                    CC
                   </td>
                   <td style="padding-left:14px;font-size:28px;font-weight:400;letter-spacing:-0.04em;color:#121212;font-family:'Cormorant Garamond','Georgia',serif;">
                     Cheri Cosmetics
@@ -123,7 +124,7 @@ export async function sendOrderStatusEmail(input: {
               </p>
               <p style="margin:0;font-size:12px;line-height:1.5;">
                 <a href="${siteLink}" style="color:#d46a8c;text-decoration:none;font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif;">
-                  lashmealexaesthetics.com
+                  ${SITE.displayDomain}
                 </a>
               </p>
             </td>

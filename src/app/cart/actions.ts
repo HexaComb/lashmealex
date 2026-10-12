@@ -32,6 +32,22 @@ import {
   validateActiveProduct,
 } from "@/lib/cart";
 import { getStripeSecretKey } from "@/lib/stripe";
+import { CART_ACCESS_COOKIE, CART_ACCESS_COOKIE_LEGACY } from "@/lib/brand-keys";
+import {
+  deleteCookiePair,
+  readAndMigrateCookie,
+  writeCookieAndClearLegacy,
+  type CookieWriteOptions,
+} from "@/lib/migrate-cookie";
+
+function cartAccessCookieOptions(): CookieWriteOptions {
+  return {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  };
+}
 
 export type StartCartResult =
   | { ok: true; cartId: string }
@@ -39,7 +55,12 @@ export type StartCartResult =
   | { ok: false; error: string };
 
 async function requireCartCapability(cartId: string): Promise<string | null> {
-  const value = (await cookies()).get("lashmealex_cart_access")?.value;
+  const value = readAndMigrateCookie(
+    await cookies(),
+    CART_ACCESS_COOKIE,
+    CART_ACCESS_COOKIE_LEGACY,
+    cartAccessCookieOptions(),
+  );
   const separator = value?.indexOf(".") ?? -1;
   if (separator < 1) return null;
   const cookieCartId = value!.slice(0, separator);
@@ -48,7 +69,7 @@ async function requireCartCapability(cartId: string): Promise<string | null> {
 }
 
 export async function clearCartCapabilityAction() {
-  (await cookies()).delete("lashmealex_cart_access");
+  deleteCookiePair(await cookies(), CART_ACCESS_COOKIE, CART_ACCESS_COOKIE_LEGACY, "/");
 }
 
 export async function startCartAction(formData: FormData): Promise<StartCartResult> {
@@ -75,12 +96,13 @@ export async function startCartAction(formData: FormData): Promise<StartCartResu
     await rotateCartAccessTokenForVerifiedShopper(existing.id, accessToken);
     const full = await getCartWithItems(existing.id, accessToken);
     const cookieStore = await cookies();
-    cookieStore.set("lashmealex_cart_access", `${existing.id}.${accessToken}`, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-    });
+    writeCookieAndClearLegacy(
+      cookieStore,
+      CART_ACCESS_COOKIE,
+      CART_ACCESS_COOKIE_LEGACY,
+      `${existing.id}.${accessToken}`,
+      cartAccessCookieOptions(),
+    );
     return {
       ok: false,
       conflict: "existing",
@@ -93,12 +115,13 @@ export async function startCartAction(formData: FormData): Promise<StartCartResu
   const accessToken = crypto.randomUUID();
   const cartId = await createCart({ email: normalized, phone: normalizePhone(phone), name, accessToken });
   const cookieStore = await cookies();
-  cookieStore.set("lashmealex_cart_access", `${cartId}.${accessToken}`, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-  });
+  writeCookieAndClearLegacy(
+    cookieStore,
+    CART_ACCESS_COOKIE,
+    CART_ACCESS_COOKIE_LEGACY,
+    `${cartId}.${accessToken}`,
+    cartAccessCookieOptions(),
+  );
   return { ok: true, cartId };
 }
 
@@ -157,12 +180,13 @@ export async function resolveCartConflictAction(formData: FormData): Promise<Res
     name,
   });
   const cookieStore = await cookies();
-  cookieStore.set("lashmealex_cart_access", `${cartId}.${newAccessToken}`, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-  });
+  writeCookieAndClearLegacy(
+    cookieStore,
+    CART_ACCESS_COOKIE,
+    CART_ACCESS_COOKIE_LEGACY,
+    `${cartId}.${newAccessToken}`,
+    cartAccessCookieOptions(),
+  );
   if (pending.length > 0) await replaceCartItems(cartId, pending, newAccessToken);
   return { ok: true, cartId };
 }
@@ -351,7 +375,12 @@ export async function createCheckoutSessionAction(cartId: string): Promise<Check
 
 export async function releaseCheckoutLockAction(): Promise<void> {
   const cookieStore = await cookies();
-  const value = cookieStore.get("lashmealex_cart_access")?.value;
+  const value = readAndMigrateCookie(
+    cookieStore,
+    CART_ACCESS_COOKIE,
+    CART_ACCESS_COOKIE_LEGACY,
+    cartAccessCookieOptions(),
+  );
   const separator = value?.indexOf(".") ?? -1;
   if (separator < 1) return;
   const cartId = value!.slice(0, separator);

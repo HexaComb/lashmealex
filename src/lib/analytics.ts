@@ -1,3 +1,10 @@
+import {
+  ANALYTICS_CONSENT_STORAGE_KEY,
+  ANALYTICS_CONSENT_STORAGE_KEY_LEGACY,
+  ANALYTICS_EVENT_NAME,
+} from "./brand-keys";
+import { readAndMigrateStorage } from "./migrate-local-storage";
+
 declare global {
   interface Window {
     dispatchEvent(event: Event): boolean;
@@ -6,9 +13,14 @@ declare global {
 
 function trackEvent(name: string, data?: Record<string, unknown>) {
   if (typeof window === 'undefined') return;
-  if (window.localStorage.getItem('lashmealex_analytics_consent') !== 'granted') return;
+  const consent = readAndMigrateStorage(
+    window.localStorage,
+    ANALYTICS_CONSENT_STORAGE_KEY,
+    ANALYTICS_CONSENT_STORAGE_KEY_LEGACY,
+  );
+  if (consent !== 'granted') return;
   try {
-    window.dispatchEvent(new CustomEvent('lashmealex:analytics', { detail: { name, data } }));
+    window.dispatchEvent(new CustomEvent(ANALYTICS_EVENT_NAME, { detail: { name, data } }));
   } catch {
     // Never let analytics errors surface to users
   }

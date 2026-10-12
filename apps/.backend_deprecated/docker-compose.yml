@@ -3,7 +3,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: lashmealex_postgres_db
+    container_name: cheri_cosmetics_postgres_db
     restart: always
     environment:
       # These are placeholders. We will use them to populate the .env file later.

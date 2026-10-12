@@ -55,7 +55,7 @@ When given a task, follow this end-to-end process. Each step maps to a specific 
 ### 2. Create or find the ClickUp ticket
 
 - Use `clickup_clickup_search` to check for an existing ticket that matches the work.
-- If none found, use `clickup_clickup_create_task` to create one in the **Lashmealex** space (space ID: `90176482789`, default list ID: `901715340178`).
+- If none found, use `clickup_clickup_create_task` to create one in the **Cheri Cosmetics** space (space ID: `90176482789`, default list ID: `901715340178`).
   - Include a clear description with problem, solution, files changed, and verification steps.
 - Record the `task_id` returned — it is needed for branch naming, commits, and PR.
 

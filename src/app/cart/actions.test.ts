@@ -17,6 +17,7 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => ({
     get: () => ({ value: "cart_1.cart-capability" }),
     set: mocks.cookieSet,
+    delete: vi.fn(),
   })),
   headers: vi.fn(async () => new Headers({ host: "store.example.com", "x-forwarded-proto": "https" })),
 }));
@@ -152,7 +153,7 @@ test("starts over by replacing the authorized cart with a new cart", async () =>
     name: "Customer",
   }));
   expect(mocks.cookieSet).toHaveBeenCalledWith(
-    "lashmealex_cart_access",
+    "cheri_cosmetics_cart_access",
     expect.stringMatching(/^cart_2\./),
     expect.objectContaining({ httpOnly: true }),
   );
@@ -184,7 +185,7 @@ test("issues a capability for a verified returning shopper before showing the ca
     expect.any(String),
   );
   expect(mocks.cookieSet).toHaveBeenCalledWith(
-    "lashmealex_cart_access",
+    "cheri_cosmetics_cart_access",
     expect.stringMatching(/^cart_1\./),
     expect.objectContaining({ httpOnly: true }),
   );

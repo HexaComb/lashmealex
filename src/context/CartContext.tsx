@@ -21,7 +21,8 @@ import {
   updateCartItemAction,
   type StartCartResult,
 } from '@/app/cart/actions';
-import { CART_STORAGE_KEY, type PendingCartItem } from '@/lib/cart-constants';
+import { CART_STORAGE_KEY, CART_STORAGE_KEY_LEGACY, type PendingCartItem } from '@/lib/cart-constants';
+import { clearStoragePair, readAndMigrateStorage, writeStorageAndClearLegacy } from '@/lib/migrate-local-storage';
 import { dollarsToCents } from '@/lib/money';
 
 export interface CartItem {
@@ -88,7 +89,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const hydrateFromServer = useCallback(async (id: string) => {
     const cart = await getCartAction(id);
     if (!cart || (cart.status !== 'active' && cart.status !== 'checkout_pending')) {
-      if (typeof window !== 'undefined') window.localStorage.removeItem(CART_STORAGE_KEY);
+      if (typeof window !== 'undefined') {
+        clearStoragePair(window.localStorage, CART_STORAGE_KEY, CART_STORAGE_KEY_LEGACY);
+      }
       setCartId(null);
       setIdentity(null);
       setItems([]);
@@ -110,7 +113,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const saved = window.localStorage.getItem(CART_STORAGE_KEY);
+    const saved = readAndMigrateStorage(window.localStorage, CART_STORAGE_KEY, CART_STORAGE_KEY_LEGACY);
     if (!saved) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsLoading(false);
@@ -245,7 +248,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if ('ok' in result && result.ok) {
         if (typeof window !== 'undefined') {
-          window.localStorage.setItem(CART_STORAGE_KEY, result.cartId);
+          writeStorageAndClearLegacy(window.localStorage, CART_STORAGE_KEY, CART_STORAGE_KEY_LEGACY, result.cartId);
         }
         await flushPendingToServer(result.cartId);
         await hydrateFromServer(result.cartId);
@@ -288,7 +291,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (result.ok) {
         pendingItemsRef.current.clear();
         if (typeof window !== 'undefined') {
-          window.localStorage.setItem(CART_STORAGE_KEY, result.cartId);
+          writeStorageAndClearLegacy(window.localStorage, CART_STORAGE_KEY, CART_STORAGE_KEY_LEGACY, result.cartId);
         }
         await hydrateFromServer(result.cartId);
         setConflict(null);
@@ -304,7 +307,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const signOutCart = useCallback(() => {
     void clearCartCapabilityAction();
-    if (typeof window !== 'undefined') window.localStorage.removeItem(CART_STORAGE_KEY);
+    if (typeof window !== 'undefined') {
+      clearStoragePair(window.localStorage, CART_STORAGE_KEY, CART_STORAGE_KEY_LEGACY);
+    }
     setCartId(null);
     setIdentity(null);
     setItems([]);

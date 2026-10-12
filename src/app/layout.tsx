@@ -4,6 +4,7 @@ import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { ConsentProvider } from "@/context/ConsentContext";
 import CookieBanner from "@/components/CookieBanner";
+import { SITE } from "@/lib/site";
 
 const jakartaSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -17,7 +18,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://lashmealex.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? SITE.fallbackUrl),
   title: {
     default: "Cheri Cosmetics",
     template: "%s | Cheri Cosmetics",
