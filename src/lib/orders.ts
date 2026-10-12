@@ -57,13 +57,7 @@ export async function getPublicOrderStatus(statusToken: string) {
 }
 
 export async function getOrderByStripeSessionId(stripeSessionId: string) {
-  const row = await fetchQuery(api.orders.getOrderByStripeSessionId, { stripeSessionId });
-  if (!row) return null;
-  return {
-    ...row,
-    createdAt: timestampToDate(row.createdAt),
-    updatedAt: timestampToDate(row.updatedAt),
-  };
+  return fetchQuery(api.orders.getOrderByStripeSessionId, { stripeSessionId });
 }
 
 export async function listAdminOrders() {
