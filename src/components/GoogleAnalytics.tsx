@@ -20,16 +20,12 @@ import {
   sendGaPageView,
   shouldLoadGaScript,
 } from "@/lib/ga";
-import { readAndMigrateStorage } from "@/lib/migrate-local-storage";
 
 function storageConsentGranted(): boolean {
   if (typeof window === "undefined") return false;
   return (
-    readAndMigrateStorage(
-      window.localStorage,
-      ANALYTICS_CONSENT_STORAGE_KEY,
-      ANALYTICS_CONSENT_STORAGE_KEY_LEGACY,
-    ) === "granted"
+    window.localStorage.getItem(ANALYTICS_CONSENT_STORAGE_KEY) === "granted" ||
+    window.localStorage.getItem(ANALYTICS_CONSENT_STORAGE_KEY_LEGACY) === "granted"
   );
 }
 
