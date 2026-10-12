@@ -28,6 +28,7 @@ Open `http://localhost:3000`.
 2. Set Convex env vars (`ADMIN_INTERNAL_SECRET`, etc.) to match Vercel.
 3. Connect the repo to Vercel; `pnpm build` is the build command.
 4. Configure Stripe, Resend (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`), and admin secrets on Vercel (see `.env.example`).
+5. Optional: set `NEXT_PUBLIC_GA_MEASUREMENT_ID` on Vercel Production and Preview to enable GA4 after cookie consent. If unset, no Google tag is loaded.
 
 ## Verification
 
