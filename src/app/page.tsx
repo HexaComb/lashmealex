@@ -1,9 +1,24 @@
 import type {Metadata} from "next";
 import Link from "next/link";
 
+import CoverImage from "../components/CoverImage";
 import HeaderShell from "../components/HeaderShell";
 import {FadeIn} from "../components/LoadingStates";
 import {getHeroProduct, listStoreProducts} from "@/lib/catalog";
+
+const HERO_FALLBACK = {
+  src: "/assets/IMG_5806.jpeg",
+  alt: "Cheri Cosmetics lash collection",
+  width: 2571,
+  height: 3600,
+} as const;
+
+const HOME_PHOTO_STRIP = [
+  { src: "/assets/IMG_5801.jpeg", alt: "Velvet lash collection", width: 2400, height: 3600 },
+  { src: "/assets/IMG_5852.jpeg", alt: "Lash artist at work", width: 2400, height: 3600 },
+  { src: "/assets/IMG_5796.jpeg", alt: "Cheri Cosmetics cashmere collection", width: 2571, height: 3600 },
+  { src: "/assets/IMG_2844.jpeg", alt: "Cheri Cosmetics packaging", width: 1600, height: 2400 },
+] as const;
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +39,10 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const storeProducts = await listStoreProducts();
-  const heroProduct = await getHeroProduct();
+  const convexConfigured = Boolean(process.env.NEXT_PUBLIC_CONVEX_URL);
+  const [storeProducts, heroProduct] = convexConfigured
+    ? await Promise.all([listStoreProducts(), getHeroProduct()])
+    : [[], null];
 
   return (
     <div className="min-h-screen bg-background">
@@ -71,18 +88,15 @@ export default async function Home() {
 
             <div className="relative flex min-h-52 flex-col bg-photo-well">
               <div className="absolute inset-0 overflow-hidden">
-                {heroProduct?.image ? (
-                  <div
-                    className="absolute inset-0 bg-cover bg-center"
-                    style={{ backgroundImage: `url('${heroProduct.image}')` }}
-                  />
-                ) : (
-                  <img
-                    src="/assets/IMG_5806.jpeg"
-                    alt="Cheri Cosmetics lash collection"
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                )}
+                <CoverImage
+                  src={heroProduct?.image ?? HERO_FALLBACK.src}
+                  alt={heroProduct?.image ? heroProduct.name : HERO_FALLBACK.alt}
+                  width={HERO_FALLBACK.width}
+                  height={HERO_FALLBACK.height}
+                  sizes="(min-width: 1024px) 42vw, 100vw"
+                  priority
+                  className="absolute inset-0 h-full w-full object-cover object-center"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent to-55%" />
               </div>
               <div className="relative z-10 mt-auto border-t border-foreground bg-white p-4">
@@ -157,16 +171,14 @@ export default async function Home() {
         {/* Photo strip */}
         <section className="overflow-hidden border-y border-foreground">
           <div className="flex">
-            {[
-              { src: "/assets/IMG_5801.jpeg", alt: "Velvet lash collection" },
-              { src: "/assets/IMG_5852.jpeg", alt: "Lash artist at work" },
-              { src: "/assets/IMG_5796.jpeg", alt: "Cheri Cosmetics cashmere collection" },
-              { src: "/assets/IMG_2844.jpeg", alt: "Cheri Cosmetics packaging" },
-            ].map((img, i) => (
+            {HOME_PHOTO_STRIP.map((img, i) => (
               <div key={img.src} className={`relative h-72 flex-1 overflow-hidden sm:h-96 ${i > 0 ? "border-l border-foreground" : ""}`}>
-                <img
+                <CoverImage
                   src={img.src}
                   alt={img.alt}
+                  width={img.width}
+                  height={img.height}
+                  sizes="25vw"
                   className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
                 />
               </div>
@@ -240,9 +252,12 @@ export default async function Home() {
                 </div>
 
                 <div className="relative hidden overflow-hidden border-l border-foreground lg:block">
-                  <img
+                  <CoverImage
                     src="/assets/IMG_5796.jpeg"
                     alt="Cheri Cosmetics lash tray"
+                    width={2571}
+                    height={3600}
+                    sizes="(min-width: 1024px) 23vw, 1px"
                     className="h-full w-full object-cover object-center"
                   />
                 </div>
