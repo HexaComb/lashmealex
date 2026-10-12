@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Plus_Jakarta_Sans } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { ConsentProvider } from "@/context/ConsentContext";
 import CookieBanner from "@/components/CookieBanner";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
+import { getGaConsentDefaultScript, getGaMeasurementId } from "@/lib/ga";
 import { SITE } from "@/lib/site";
 
 const jakartaSans = Plus_Jakarta_Sans({
@@ -80,10 +83,18 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const gaMeasurementId = getGaMeasurementId();
+
   return (
     <html lang="en" className={`${jakartaSans.variable} ${cormorant.variable}`}>
+      {gaMeasurementId ? (
+        <Script id="ga-consent-default" strategy="beforeInteractive">
+          {getGaConsentDefaultScript(gaMeasurementId)}
+        </Script>
+      ) : null}
       <body>
         <ConsentProvider>
+          <GoogleAnalytics />
           <CartProvider>{children}</CartProvider>
           <CookieBanner />
         </ConsentProvider>
