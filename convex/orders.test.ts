@@ -238,6 +238,77 @@ test("does not create an order until Stripe reports a paid session", async () =>
   }
 });
 
+test("returns only checkout-success fields for a public Stripe session lookup", async () => {
+  const t = convexTest(schema, modules);
+  const now = Date.now();
+  await seedOrder(t, {
+    stripeSessionId: "cs_success_1",
+    customerEmail: "secret@example.com",
+    customerName: "Secret Name",
+    notes: "internal note",
+    statusToken: "status_token_secret",
+    stripePaymentStatus: "paid",
+    lastStripeEventId: "evt_secret",
+    lastStripeEventType: "checkout.session.completed",
+    confirmationEmailStatus: "sent",
+    confirmationEmailLastError: "should-not-leak",
+  });
+  await t.run(async (ctx) => {
+    await ctx.db.insert("products", {
+      id: "product_success",
+      parentProductId: "parent_success",
+      parentProductName: "Lash Shampoo",
+      slug: "lash-shampoo-success",
+      name: "Lash Shampoo",
+      variantName: "60ml",
+      category: "care",
+      price: 2400,
+      inventory: 4,
+      isFeatured: false,
+      isHero: false,
+      isActive: true,
+      sortOrder: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await ctx.db.insert("orderItems", {
+      id: "order_item_1",
+      orderId: "order_1",
+      productId: "product_success",
+      quantity: 2,
+      price: 2400,
+    });
+  });
+
+  const result = await t.query(api.orders.getOrderByStripeSessionId, {
+    stripeSessionId: "cs_success_1",
+  });
+
+  expect(result).toEqual({
+    id: "order_1",
+    status: "paid",
+    fulfillmentStatus: "received",
+    total: 2400,
+    items: [{ name: "Lash Shampoo", variantName: "60ml", quantity: 2 }],
+  });
+  expect(result).not.toHaveProperty("customerEmail");
+  expect(result).not.toHaveProperty("customerName");
+  expect(result).not.toHaveProperty("notes");
+  expect(result).not.toHaveProperty("phone");
+  expect(result).not.toHaveProperty("stripeSessionId");
+  expect(result).not.toHaveProperty("stripePaymentStatus");
+  expect(result).not.toHaveProperty("lastStripeEventId");
+  expect(result).not.toHaveProperty("lastStripeEventType");
+  expect(result).not.toHaveProperty("statusToken");
+  expect(result).not.toHaveProperty("confirmationEmailStatus");
+  expect(result).not.toHaveProperty("confirmationEmailLastError");
+  expect(result).not.toHaveProperty("subtotal");
+  expect(result).not.toHaveProperty("_id");
+  expect(await t.query(api.orders.getOrderByStripeSessionId, {
+    stripeSessionId: "cs_missing",
+  })).toBeNull();
+});
+
 test("returns only non-sensitive data for a public order-status link", async () => {
   const t = convexTest(schema, modules);
   await seedOrder(t);

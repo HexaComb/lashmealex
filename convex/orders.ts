@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
+import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { assertAdminSecret } from "./lib/admin";
@@ -33,13 +33,64 @@ const checkoutLineValidator = v.object({
 const EMAIL_SEND_STALE_MS = 5 * 60 * 1000;
 const EMAIL_RETRY_MAX = 8;
 
+const publicCheckoutItemValidator = v.object({
+  name: v.string(),
+  variantName: v.union(v.string(), v.null()),
+  quantity: v.number(),
+});
+
+const publicCheckoutOrderValidator = v.object({
+  id: v.string(),
+  status: v.string(),
+  fulfillmentStatus: v.string(),
+  total: v.number(),
+  items: v.array(publicCheckoutItemValidator),
+});
+
+async function toPublicCheckoutOrder(ctx: QueryCtx, order: Doc<"orders">) {
+  const itemRows = await ctx.db
+    .query("orderItems")
+    .withIndex("by_orderId", (q) => q.eq("orderId", order.id))
+    .collect();
+
+  const items = await Promise.all(itemRows.map(async (item) => {
+    const product = await ctx.db
+      .query("products")
+      .withIndex("by_externalId", (q) => q.eq("id", item.productId))
+      .first();
+    return {
+      name: product?.name ?? "Product no longer available",
+      variantName: product?.variantName ?? null,
+      quantity: item.quantity,
+    };
+  }));
+
+  items.sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    id: order.id,
+    status: order.status,
+    fulfillmentStatus: order.fulfillmentStatus,
+    total: order.total,
+    items,
+  };
+}
+
+/**
+ * Public checkout-success lookup. Stripe session ids appear in success URLs, so
+ * this must not return customer PII, Stripe ids, or other internal order fields.
+ * Full order documents stay on admin-secret queries and mutation-local helpers.
+ */
 export const getOrderByStripeSessionId = query({
   args: { stripeSessionId: v.string() },
+  returns: v.union(publicCheckoutOrderValidator, v.null()),
   handler: async (ctx, args) => {
-    return ctx.db
+    const order = await ctx.db
       .query("orders")
       .withIndex("by_stripeSessionId", (q) => q.eq("stripeSessionId", args.stripeSessionId))
       .first();
+    if (!order) return null;
+    return await toPublicCheckoutOrder(ctx, order);
   },
 });
 
